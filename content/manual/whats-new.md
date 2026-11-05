@@ -2,6 +2,8 @@ New features and changes to Demand Now, newest first.
 
 # November 2026
 
+- **Team accounts.** Add colleagues as Admins or regular users, choose what each regular user can do, and see a log of recent activity. See [Your team and user roles](/help/team).
+- **Receipts.** Download a paid receipt for every payment under **Billing > Invoices and receipts**.
 - **User manual.** This manual is now built into the app under **Help**, and it's updated with every new feature.
 - **Add invoices by hand.** Enter invoices yourself alongside the ones from your accounting system. See [Receivables dashboard](/help/receivables).
 - **Claude and ChatGPT.** Connect an AI assistant to start demands from a chat. See [Claude and ChatGPT](/help/ai-assistants).

@@ -1,10 +1,12 @@
+import { acct, isAdmin } from "@/lib/auth";
 import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
 export const POST = (req: Request) =>
   withUser(req, async (user) => {
-    const db = await readDB(user.id);
+    if (!isAdmin(user)) return go(req, "/?adminOnly=1");
+    const db = await readDB(acct(user));
     delete db.mailbox;
-    await writeDB(user.id, db);
+    await writeDB(acct(user), db);
     return go(req, "/settings#mailbox");
   });

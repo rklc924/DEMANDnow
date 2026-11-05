@@ -1,4 +1,4 @@
-**Billing** shows your plan, how many letters you've used this month, your card on file and any one-time charges.
+Only admins can open **Billing**. It shows your plan, how many letters you've used this month, your card on file and your receipts.
 
 # Plans
 
@@ -24,7 +24,9 @@ On Standard, once you've used all {{STANDARD_LIMIT}} letters, sending is paused 
 
 Your card is used for your plan and anything you book: process servers, company searches, lien filings and title searches. You're never charged without choosing something first. **Update card** replaces it.
 
-One-time charges are listed under **One-time charges** with the date, what it was for and the amount.
+# Invoices and receipts
+
+Every payment, for your plan or a service, is listed under **Invoices and receipts** with the date, receipt number, description and amount. Click **Receipt PDF** for a paid receipt. Plan payments also have a **Stripe invoice** link. Land Title Office and registry fees charged at cost appear as separate lines.
 
 # Other fees
 

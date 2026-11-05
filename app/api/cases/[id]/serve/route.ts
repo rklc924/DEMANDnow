@@ -1,3 +1,4 @@
+import { acct, can } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { NOTICE_OF_CLAIM_PACKAGE } from "@/lib/certificate";
@@ -6,15 +7,16 @@ import { appUrl, sendEmail } from "@/lib/email";
 import { go, withUser } from "@/lib/http";
 import { loadRow } from "@/lib/ledger";
 import { buildCertificate, dispatch, newJob, requestQuote, saveJob } from "@/lib/service";
-import { readUpload, writeDB } from "@/lib/store";
+import { readUpload, writeDB, logActivity, readDB } from "@/lib/store";
 import { chargeCard } from "@/lib/stripe";
 
 // Book a process server for a matter's starting document.
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
+    if (!can(user, "orderServices")) return go(req, `/cases/${params.id}?noPermission=1#service`);
     const back = (q: string) => go(req, `/cases/${params.id}?${q}#service`);
     const f = await req.formData();
-    const { db, row } = await loadRow(user.id, params.id);
+    const { db, row } = await loadRow(acct(user), params.id);
     const svc = row?.forum.service;
     if (!row || !svc) return back("serveError=" + encodeURIComponent("Service booking isn't available for this matter."));
 
@@ -29,7 +31,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const serverFee = (area.price ?? 0) + (rush ? rushFee : 0);
     const bookingFee = svc.serverFees.bookingFee;
     const { job, token } = newJob({
-      accountId: user.id,
+      accountId: acct(user),
       invoiceId: row.invoice.id,
       areaId: area.id,
       rush,
@@ -54,7 +56,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       await requestQuote(req, job, row, db.company);
       await saveJob(job);
       record();
-      await writeDB(user.id, db);
+      await writeDB(acct(user), db);
       return back("quote=1");
     }
 
@@ -63,7 +65,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     let notice: { name: string; key: string; mime: string } | undefined;
     if (uploaded instanceof File && uploaded.size > 0) {
       const ext = uploaded.type === "application/pdf" ? "pdf" : uploaded.type === "image/png" ? "png" : "jpg";
-      const key = await putFile(`${user.id}/serve-${job.id}-notice.${ext}`, new Uint8Array(await uploaded.arrayBuffer()), uploaded.type);
+      const key = await putFile(`${acct(user)}/serve-${job.id}-notice.${ext}`, new Uint8Array(await uploaded.arrayBuffer()), uploaded.type);
       notice = { name: `Filed Notice of Claim.${ext}`, key, mime: uploaded.type };
     } else {
       const doc = (db.progress?.[row.invoice.id]?.docs ?? []).filter((d) => d.stepId === "notice").at(-1);
@@ -73,7 +75,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
 
     // Charge the card on file before anything is sent.
     try {
-      const charge = await chargeCard(user.id, job.total, `Process service: ${serveOn} (${row.invoice.number})`, { jobId: job.id, invoiceId: row.invoice.id });
+      const charge = await chargeCard(acct(user), job.total, `Process service: ${serveOn} (${row.invoice.number})`, { jobId: job.id, invoiceId: row.invoice.id });
       job.chargeId = charge.id;
       (db.charges ??= []).push({ id: randomBytes(4).toString("hex"), at: new Date().toISOString(), amount: job.total, description: `Process service on ${serveOn}`, stripeId: charge.id, demo: charge.demo });
     } catch (e) {
@@ -81,15 +83,16 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     }
 
     const cert = await buildCertificate(job, NOTICE_OF_CLAIM_PACKAGE);
-    const certKey = await putFile(`${user.id}/serve-${job.id}-certificate.pdf`, cert, "application/pdf");
+    const certKey = await putFile(`${acct(user)}/serve-${job.id}-certificate.pdf`, cert, "application/pdf");
     job.files = [notice, { name: "Certificate of Service (pre-filled).pdf", key: certKey, mime: "application/pdf" }];
     await dispatch(req, job, token, [
       { filename: notice.name, content: await readUpload(notice.key) },
       { filename: "Certificate of Service (pre-filled).pdf", content: cert },
     ]);
     await saveJob(job);
+    logActivity(db, user, `Booked a process server for ${serveOn}`, `/cases/${row.invoice.id}#service`);
     record();
-    await writeDB(user.id, db);
+    await writeDB(acct(user), db);
 
     await sendEmail({
       to: job.clientEmail,

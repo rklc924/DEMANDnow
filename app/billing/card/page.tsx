@@ -1,12 +1,12 @@
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { readDB } from "@/lib/store";
 import { billingLive } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
 export default async function CardPage({ searchParams }: { searchParams: { plan?: string; error?: string } }) {
-  const user = await requireUser({ card: false });
-  const db = await readDB(user.id);
+  const user = await requireUser({ card: false, admin: true });
+  const db = await readDB(acct(user));
   return (
     <div className="card auth" style={{ maxWidth: 520 }}>
       <h1>{db.card ? "Update your card" : "Add a card to your account"}</h1>

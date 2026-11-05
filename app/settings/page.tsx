@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { providerLabel, providerLive } from "@/lib/mailbox";
 import { mcpUrl } from "@/lib/oauth";
 import { readDB } from "@/lib/store";
@@ -6,8 +6,8 @@ import { readDB } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export default async function Settings({ searchParams }: { searchParams: { saved?: string; mailError?: string; ai?: string } }) {
-  const user = await requireUser();
-  const { company: c, settings: s, mailbox: m, aiConnections: ai = [] } = await readDB(user.id);
+  const user = await requireUser({ admin: true });
+  const { company: c, settings: s, mailbox: m, aiConnections: ai = [] } = await readDB(acct(user));
   const server = mcpUrl();
   return (
     <>

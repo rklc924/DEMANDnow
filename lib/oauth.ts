@@ -1,3 +1,4 @@
+import { accountIdForUser } from "./auth";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { deleteDoc, getDoc, putDoc } from "./db";
 import { readDB, writeDB } from "./store";
@@ -165,9 +166,10 @@ async function createGrant(userId: string, client: Client, scope: string): Promi
     createdAt: new Date().toISOString(),
   };
   await putDoc("oauth", `grant_${grant.grantId}`, grant);
-  const db = await readDB(userId);
+  const accountId = await accountIdForUser(userId);
+  const db = await readDB(accountId);
   db.aiConnections = [...(db.aiConnections ?? []), { grantId: grant.grantId, clientName: client.name, connectedAt: grant.createdAt }];
-  await writeDB(userId, db);
+  await writeDB(accountId, db);
   return grant;
 }
 
@@ -210,10 +212,11 @@ export async function revokeToken(raw: string) {
 export async function disconnect(userId: string, grantId: string) {
   const grant = await getDoc<Grant>("oauth", `grant_${grantId}`);
   if (grant && grant.userId === userId) await deleteDoc("oauth", `grant_${grantId}`);
-  const db = await readDB(userId);
+  const accountId = await accountIdForUser(userId);
+  const db = await readDB(accountId);
   if (db.aiConnections?.some((c) => c.grantId === grantId)) {
     db.aiConnections = db.aiConnections.filter((c) => c.grantId !== grantId);
-    await writeDB(userId, db);
+    await writeDB(accountId, db);
   }
 }
 

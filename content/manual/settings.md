@@ -1,4 +1,4 @@
-**Settings** controls how your letters look, who they come from and when they go out.
+**Settings** controls how your letters look, who they come from and when they go out. Only admins can open it.
 
 # Letterhead
 

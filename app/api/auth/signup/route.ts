@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookieOptions, createUser, SESSION_COOKIE, sessionValue } from "@/lib/auth";
+import { cookieOptions, createUser, SESSION_COOKIE, sessionValue, acct } from "@/lib/auth";
 import { sendVerification } from "@/lib/authmail";
 import { go } from "@/lib/http";
 import { readDraft, saveDraft } from "@/lib/oneoff";
@@ -18,11 +18,11 @@ export async function POST(req: Request) {
     // Coming from a one-off draft: carry its details and matter into the new account.
     const draft = await readDraft(String(f.get("draft") ?? ""));
     if (draft && !draft.importedTo) {
-      const db = await readDB(user.id);
+      const db = await readDB(acct(user));
       db.company = { ...draft.company, email: draft.company.email || user.email };
       db.manual = { customers: [draft.debtor], invoices: [draft.invoice] };
-      await writeDB(user.id, db);
-      draft.importedTo = user.id;
+      await writeDB(acct(user), db);
+      draft.importedTo = acct(user);
       await saveDraft(draft);
     }
     await sendVerification(req, user).catch((e) => console.error("verification email failed", e));

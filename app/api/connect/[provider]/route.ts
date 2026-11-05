@@ -1,3 +1,4 @@
+import { acct, isAdmin } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { go, withUser } from "@/lib/http";
@@ -10,12 +11,13 @@ type Ctx = { params: { provider: string } };
 // Demo mode (no client id/secret configured): connects a simulated mailbox so the flow can be tried.
 export const POST = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
+    if (!isAdmin(user)) return go(req, "/?adminOnly=1");
     const p = params.provider;
     if (!isProvider(p)) return go(req, "/settings");
     if (!providerLive(p)) {
-      const db = await readDB(user.id);
+      const db = await readDB(acct(user));
       db.mailbox = { provider: p, address: db.company.email || user.email, connectedAt: new Date().toISOString(), demo: true, sendEmail: true, addReminders: true };
-      await writeDB(user.id, db);
+      await writeDB(acct(user), db);
       return go(req, "/settings?saved=mailbox#mailbox");
     }
     const state = randomBytes(16).toString("hex");
