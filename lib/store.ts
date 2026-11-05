@@ -107,6 +107,8 @@ export interface DB {
   reminders?: Reminder[];
   /** Paid add-ons. */
   addons?: { liens?: { since: string } };
+  /** The other party's confirmed legal name and address, by customer id (lib/party.ts). */
+  parties?: Record<string, import("./party").Party>;
   liens?: Lien[];
   /** Per matter (invoice id or lien id): ticked steps and documents uploaded for steps that need outside proof. */
   progress?: Record<string, CaseProgress>;

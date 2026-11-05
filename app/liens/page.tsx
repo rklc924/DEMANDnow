@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/aging";
-import { LIEN_ADDON_PRICE, LIEN_ROLE_LABEL, lienDates } from "@/lib/liens";
+import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -25,10 +25,11 @@ export default async function Liens({ searchParams }: { searchParams: { error?: 
             <li>Fills the Claim of Lien (Form 5) data from your details and the title search</li>
             <li>Tick-box checklist through filing at the Land Title Office, with document checks that flag errors before you file</li>
             <li>Deadlines and reminders in your calendar, plus a lawyer hand-off for the court action</li>
+            <li>Optional: we file it by hand for ${LIEN_FILING_FEE} per lien plus Land Title Office fees, with proof of filing within {LIEN_STANDARD_DAYS} business days (rush 1 to 3 business days for ${LIEN_RUSH_FEE} more if ordered before 12 PM)</li>
           </ul>
           <form action="/api/addons/liens" method="post" className="row" style={{ marginTop: 14 }}>
-            <button className="btn">Add Builders Liens · ${LIEN_ADDON_PRICE} per lien</button>
-            <span className="pill grey">sample price</span>
+            <button className="btn">Turn on Builders Liens</button>
+            <span className="note">Deadline tools are included. You only pay when we file a lien for you.</span>
           </form>
         </div>
       </div>

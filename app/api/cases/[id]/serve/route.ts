@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
+import { NOTICE_OF_CLAIM_PACKAGE } from "@/lib/certificate";
 import { putFile } from "@/lib/db";
 import { appUrl, sendEmail } from "@/lib/email";
 import { go, withUser } from "@/lib/http";
@@ -36,7 +37,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       bookingFee,
       total: serverFee + bookingFee,
       serveOn,
-      isCompany: row.customer.kind === "business",
+      isCompany: (db.parties?.[row.customer.id]?.type ?? (row.customer.kind === "business" ? "company" : "individual")) === "company",
       address,
       contactNotes: String(f.get("notes") ?? "").trim(),
       courtFileNo: String(f.get("courtFileNo") ?? "").trim(),
@@ -79,7 +80,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       return back("serveError=" + encodeURIComponent((e as Error).message));
     }
 
-    const cert = await buildCertificate(job, [`${svc.document} (filed)`, "Blank Reply form"]);
+    const cert = await buildCertificate(job, NOTICE_OF_CLAIM_PACKAGE);
     const certKey = await putFile(`${user.id}/serve-${job.id}-certificate.pdf`, cert, "application/pdf");
     job.files = [notice, { name: "Certificate of Service (pre-filled).pdf", key: certKey, mime: "application/pdf" }];
     await dispatch(req, job, token, [

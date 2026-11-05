@@ -69,11 +69,10 @@ export async function buildCertificate(job: ServiceJob, documents: string[]) {
     courtFileNo: job.courtFileNo,
     registry: job.registry,
     claimant: job.claimant,
-    defendant: job.serveOn,
     serveOn: job.serveOn,
     address: job.address,
     documents,
-    isCompany: job.isCompany,
+    kind: job.isCompany ? "company" : "individual",
   });
 }
 

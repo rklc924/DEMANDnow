@@ -249,3 +249,9 @@ ul.ticks li::before { background: #0F766E; color: #fff; }
 .logo-dot { background: linear-gradient(135deg, #14B8A6, #0F766E); }
 .paper .lh { border-bottom-color: #0F766E; }
 .dot.ok { background: #0F766E; } .dot.cal { background: #FFC83D; }
+
+/* Plain numbered guidance lists */
+ol.steps-plain { padding-left: 20px; margin: 6px 0 0; }
+ol.steps-plain li { margin: 0 0 8px; line-height: 1.45; }
+details > summary { cursor: pointer; padding: 6px 0; }
+.subcard { background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }

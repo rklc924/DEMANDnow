@@ -59,6 +59,9 @@ export interface BookingProps {
   card?: string; // "VISA ending 4242"
   jobs: { id: string; createdAt: string; status: string; total: number; servedAt?: string }[];
   message?: { kind: "good" | "bad"; text: string };
+  /** Pre-filled Certificate of Service download, plus ?kind=individual|company. */
+  certificate?: string;
+  isCompany?: boolean;
 }
 
 export function ServiceOptions({ forum, served, action, booking }: { forum: Row["forum"]; served?: string; action: string; booking?: BookingProps }) {
@@ -94,6 +97,12 @@ export function ServiceOptions({ forum, served, action, booking }: { forum: Row[
             ))}
           </ul>
           <p><b>Proof of service: {s.proof.document}.</b> {s.proof.detail} {s.proof.verify && <span className="pill grey">confirm</span>}</p>
+          {booking?.certificate && (
+            <div className="row">
+              <a className={`btn ${booking.isCompany ? "" : "ghost"}`} href={`${booking.certificate}?kind=company`} target="_blank">Certificate of Service: company</a>
+              <a className={`btn ${booking.isCompany ? "ghost" : ""}`} href={`${booking.certificate}?kind=individual`} target="_blank">Certificate of Service: individual</a>
+            </div>
+          )}
         </div>
       </div>
 

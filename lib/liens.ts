@@ -8,7 +8,47 @@ import type { EnforcementStep } from "./jurisdictions/types";
 //          or within 21 days after being served with a notice to commence an action
 // Wording is our own summary. Items marked verify need a lawyer's check before launch.
 
-export const LIEN_ADDON_PRICE = 149; // PLACEHOLDER per-lien price, not yet approved
+// Filing service (Rocky, Nov 2026): we file the claim of lien by hand at the Land Title Office.
+// $250 per lien plus LTSA filing fees at cost. Proof of filing within 5 business days.
+// Rush: proof within 1 to 3 business days if ordered before 12 PM Pacific, for $100 more.
+export const LIEN_FILING_FEE = 250;
+export const LIEN_RUSH_FEE = 100;
+export const LIEN_STANDARD_DAYS = 5;
+export const LIEN_RUSH_DAYS = 3;
+/** Post-registration title search: confirms the lien is on title and shows what ranks ahead of it. Plus LTSA costs. */
+export const LIEN_TITLE_SEARCH_FEE = 50;
+
+export interface LienFilingOrder {
+  orderedAt: string;
+  rush: boolean;
+  fee: number;
+  /** Latest business day we promise proof of filing by, YYYY-MM-DD. */
+  proofBy: string;
+  chargeId?: string;
+  status: "ordered" | "filed";
+}
+
+const pacific = (d: Date) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Vancouver", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false }).formatToParts(d).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) % 24 };
+};
+const isWeekday = (iso: string) => ![0, 6].includes(new Date(iso + "T12:00:00Z").getUTCDay());
+const addDay = (iso: string) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
+export function addBusinessDays(iso: string, n: number) {
+  let d = iso;
+  while (n > 0) { d = addDay(d); if (isWeekday(d)) n--; }
+  return d;
+}
+
+/** When proof of filing is due if ordered at `now`. Orders after 12 PM Pacific, or on a weekend, count from the next business day. */
+export function filingQuote(now = new Date()) {
+  const { date, hour } = pacific(now);
+  const sameDay = isWeekday(date) && hour < 12;
+  const start = sameDay ? date : addBusinessDays(date, 1);
+  // Counting from the start day: day 1 is the start day itself.
+  const by = (n: number) => addBusinessDays(start, n - 1);
+  return { beforeNoon: sameDay, standardBy: by(LIEN_STANDARD_DAYS), rushBy: by(LIEN_RUSH_DAYS) };
+}
 
 export type LienRole = "contractor" | "subcontractor" | "worker" | "supplier";
 
@@ -32,6 +72,8 @@ export interface Lien {
   filedDate?: string;
   noticeToCommenceServedDate?: string;
   satisfied?: boolean;
+  filing?: LienFilingOrder;
+  titleSearchOrder?: { orderedAt: string; fee: number; chargeId?: string };
 }
 
 export const LIEN_ROLE_LABEL: Record<LienRole, string> = {
@@ -144,6 +186,19 @@ export const LIEN_STEPS: EnforcementStep[] = [
         "Shows the claim of lien registered against the correct PID",
         "Shows the registration number and date",
         "Registration date is on or before the 45-day deadline",
+      ],
+    },
+  },
+  {
+    id: "priority",
+    title: "Pull a post-registration title search to see where your lien ranks",
+    detail: "Once the lien is filed, get a fresh title search. It confirms your lien is registered against the right property, and shows every mortgage and charge registered ahead of it. Those generally get paid first if the property is sold, so this tells you how much security you really have and whether it's worth pushing to court. We can pull it for $50 plus Land Title Office costs.",
+    upload: {
+      label: "Post-registration title search",
+      requirements: [
+        "Is a BC Land Title Office title search dated on or after the lien's filing date",
+        "Shows the claim of lien registered against the correct PID",
+        "Lists the mortgages, liens and other charges registered on title, so priority can be assessed",
       ],
     },
   },

@@ -1,3 +1,4 @@
+import { applyParty } from "./party";
 import { sampleProvider } from "./accounting/sample";
 import type { Customer, Invoice } from "./accounting/types";
 import { bucketFor, daysOverdue, type Bucket } from "./aging";
@@ -43,7 +44,7 @@ export async function loadRows(accountId: string, db?: DB): Promise<{ db: DB; ro
   const invoices = [...syncedInvoices, ...(db.manual?.invoices ?? [])];
   const byId = new Map(customers.map((c) => [c.id, c]));
   const today = new Date();
-  const rows = invoices.filter((i) => byId.has(i.customerId)).map((i) => buildRow(db!, i, byId.get(i.customerId)!, today));
+  const rows = invoices.filter((i) => byId.has(i.customerId)).map((i) => buildRow(db!, i, applyParty(byId.get(i.customerId)!, db!.parties?.[i.customerId]), today));
   rows.sort((a, b) => b.days - a.days);
   return { db, rows };
 }
