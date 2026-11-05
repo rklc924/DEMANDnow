@@ -116,6 +116,10 @@ export interface DB {
   outbox?: { to: string; subject: string; at: string }[];
   /** Matters entered by hand (or imported from a one-off), alongside the accounting sync. */
   manual?: { customers: Customer[]; invoices: Invoice[] };
+  /** AI assistants (Claude, ChatGPT) connected to this account through the MCP server (lib/oauth.ts). */
+  aiConnections?: { grantId: string; clientName: string; connectedAt: string }[];
+  /** Where each hand-entered matter came from, by invoice id (e.g. "Claude"). */
+  matterSource?: Record<string, string>;
 }
 
 export { DATA_DIR } from "./db";

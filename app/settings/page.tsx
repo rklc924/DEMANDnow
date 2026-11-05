@@ -1,12 +1,14 @@
 import { requireUser } from "@/lib/auth";
 import { providerLabel, providerLive } from "@/lib/mailbox";
+import { mcpUrl } from "@/lib/oauth";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export default async function Settings({ searchParams }: { searchParams: { saved?: string; mailError?: string } }) {
+export default async function Settings({ searchParams }: { searchParams: { saved?: string; mailError?: string; ai?: string } }) {
   const user = await requireUser();
-  const { company: c, settings: s, mailbox: m } = await readDB(user.id);
+  const { company: c, settings: s, mailbox: m, aiConnections: ai = [] } = await readDB(user.id);
+  const server = mcpUrl();
   return (
     <>
       <h1>Company &amp; letterhead</h1>
@@ -68,6 +70,43 @@ export default async function Settings({ searchParams }: { searchParams: { saved
               <form action="/api/connect/google" method="post"><button className="btn ghost">Connect Gmail / Google</button></form>
             </div>
             <p className="note">Using another email app? Letters still go out from Demand Now, and each matter has an .ics file you can add to Apple Calendar or any other calendar.{!providerLive("microsoft") && !providerLive("google") ? " Demo mode: connecting simulates a mailbox." : ""}</p>
+          </>
+        )}
+      </div>
+      <div className="card" id="ai">
+        <h2>AI assistants (Claude and ChatGPT)</h2>
+        {searchParams.ai === "disconnected" && <div className="banner good">Disconnected. That assistant can no longer reach your account.</div>}
+        <p className="note" style={{ marginTop: 0 }}>Connect Claude or ChatGPT and you can ask it about an unpaid invoice, then have it add the matter here for you to review and send. It can't send letters or charge your card.</p>
+        <label>Connector URL</label>
+        <input type="text" value={server} readOnly />
+        <div className="grid2" style={{ marginTop: 12 }}>
+          <div>
+            <b>Claude</b>
+            <ol className="note" style={{ paddingLeft: 18 }}>
+              <li>In Claude, open Settings, then Connectors.</li>
+              <li>Choose Add custom connector, name it Demand Now and paste the URL above.</li>
+              <li>Click Connect, log in here and choose Allow.</li>
+            </ol>
+          </div>
+          <div>
+            <b>ChatGPT</b>
+            <ol className="note" style={{ paddingLeft: 18 }}>
+              <li>In ChatGPT, open Settings, then Apps &amp; Connectors (turn on Developer mode under Advanced if you don't see Create).</li>
+              <li>Choose Create, name it Demand Now, paste the URL above and pick OAuth.</li>
+              <li>Log in here and choose Allow.</li>
+            </ol>
+          </div>
+        </div>
+        <p className="note">Then ask something like: "Acme Ltd owes us $7,800 on invoice 1042, due June 3. Start a demand in Demand Now."</p>
+        {ai.length > 0 && (
+          <>
+            <h3 style={{ marginTop: 16 }}>Connected</h3>
+            {ai.map((a) => (
+              <div className="row" key={a.grantId} style={{ justifyContent: "space-between", padding: "6px 0" }}>
+                <span><span className="pill good">Connected</span> {a.clientName} · since {new Date(a.connectedAt).toLocaleDateString("en-CA")}</span>
+                <form action="/api/ai/disconnect" method="post"><input type="hidden" name="grantId" value={a.grantId} /><button className="btn small ghost">Disconnect</button></form>
+              </div>
+            ))}
           </>
         )}
       </div>

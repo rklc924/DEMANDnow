@@ -30,6 +30,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       {searchParams.limit && <div className="banner warn">{searchParams.limit} <a href="/billing">See plans</a></div>}
       {searchParams.review && <div className="banner good">Sent to the firm for review. A lawyer will contact you within one business day.</div>}
       {row.paid && <div className="banner good">Marked paid. The workflow has stopped.</div>}
+      {db.matterSource?.[invoice.id] && !letter && <div className="banner warn">Added from {db.matterSource[invoice.id]}. Check the debtor's legal name, address and the amount before you send the letter.</div>}
       {row.daysToLimitation <= 120 && row.daysToLimitation > 0 && (
         <div className="banner warn">Limitation date is close: {fmt(row.limitation)} ({row.daysToLimitation} days). A claim must be started before then.</div>
       )}

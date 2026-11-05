@@ -62,3 +62,5 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: OPENAI_APPS_CHALLENGE
+        sync: false
