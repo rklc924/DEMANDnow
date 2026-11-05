@@ -26,6 +26,9 @@ export const GET = (req: Request, { params }: Ctx) =>
 
 export const POST = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
+    if (!user.emailVerifiedAt) {
+      return go(req, `/cases/${params.id}?limit=${encodeURIComponent("Confirm your email address before sending letters. Check your inbox, or resend the link from Receivables.")}`);
+    }
     try {
       await sendLetter(user.id, params.id);
     } catch (e) {

@@ -17,7 +17,7 @@ export default function Signup({ searchParams }: { searchParams: { error?: strin
         <label>Work email</label>
         <input type="text" name="email" autoComplete="email" required />
         <label>Password (8+ characters)</label>
-        <input type="password" name="password" autoComplete="new-password" minLength={8} required />
+        <input type="password" name="password" autoComplete="new-password" minLength={10} required />
         <div style={{ marginTop: 16 }}><button className="btn" style={{ width: "100%" }}>Create account</button></div>
       </form>
       <p className="note" style={{ marginTop: 16 }}>Already have an account? <a href="/login">Log in</a></p>

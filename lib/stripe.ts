@@ -21,8 +21,7 @@ export const billingLive = () => stripe() !== null;
 
 const appUrl = (req: Request) => process.env.APP_URL ?? new URL(req.url).origin;
 
-/** Creates a Stripe Checkout Session for plan x interval and returns its URL. Prices are defined inline in CAD. */
-export async function createCheckout(req: Request, account: { id: string; email: string; company: string }, plan: PlanId, interval: Interval) {
+async function ensureCustomer(account: { id: string; email: string; company: string }) {
   const s = stripe()!;
   const db = await readDB(account.id);
   if (!db.stripeCustomerId) {
@@ -30,11 +29,72 @@ export async function createCheckout(req: Request, account: { id: string; email:
     db.stripeCustomerId = customer.id;
     await writeDB(account.id, db);
   }
+  return db.stripeCustomerId;
+}
+
+/** Stripe Checkout in setup mode: saves a card to the customer without charging it. */
+export async function createCardSetup(req: Request, account: { id: string; email: string; company: string }, next: string) {
+  const customer = await ensureCustomer(account);
+  const session = await stripe()!.checkout.sessions.create({
+    mode: "setup",
+    customer,
+    currency: "cad",
+    payment_method_types: ["card"],
+    client_reference_id: account.id,
+    metadata: { accountId: account.id, purpose: "card" },
+    success_url: `${appUrl(req)}/api/billing/card/confirm?session_id={CHECKOUT_SESSION_ID}&next=${encodeURIComponent(next)}`,
+    cancel_url: `${appUrl(req)}/billing/card`,
+  });
+  return session.url!;
+}
+
+/** Records the card from a completed setup session and makes it the customer's default. Idempotent. */
+export async function saveCardFromSetup(sessionId: string): Promise<string | null> {
+  const s = stripe()!;
+  const session = await s.checkout.sessions.retrieve(sessionId, { expand: ["setup_intent.payment_method"] });
+  const accountId = session.metadata?.accountId;
+  const si = session.setup_intent as Stripe.SetupIntent | null;
+  const pm = si?.payment_method as Stripe.PaymentMethod | null;
+  if (!accountId || !pm?.card || session.status !== "complete") return null;
+  await s.customers.update(session.customer as string, { invoice_settings: { default_payment_method: pm.id } });
+  const db = await readDB(accountId);
+  db.card = { brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year, addedAt: new Date().toISOString(), paymentMethodId: pm.id };
+  await writeDB(accountId, db);
+  return accountId;
+}
+
+/** Charges the card on file off-session (process servers, add-ons). Throws with a customer-facing message on failure. */
+export async function chargeCard(accountId: string, amountCad: number, description: string, metadata: Record<string, string>) {
+  const db = await readDB(accountId);
+  if (!db.card) throw new Error("Add a card on file first.");
+  if (!billingLive() || db.card.demo) return { id: `demo_${Date.now()}`, demo: true };
+  try {
+    const pi = await stripe()!.paymentIntents.create({
+      amount: Math.round(amountCad * 100),
+      currency: "cad",
+      customer: db.stripeCustomerId,
+      payment_method: db.card.paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description,
+      metadata: { accountId, ...metadata },
+    });
+    return { id: pi.id, demo: false };
+  } catch (e) {
+    const err = e as Stripe.errors.StripeError;
+    throw new Error(err.type === "StripeCardError" ? `Your card was declined: ${err.message} Update your card in Billing.` : "Payment failed. Try again or update your card in Billing.");
+  }
+}
+
+/** Creates a Stripe Checkout Session for plan x interval and returns its URL. Prices are defined inline in CAD. */
+export async function createCheckout(req: Request, account: { id: string; email: string; company: string }, plan: PlanId, interval: Interval) {
+  const s = stripe()!;
+  const customer = await ensureCustomer(account);
   const p = PLANS[plan];
   const metadata = { accountId: account.id, plan, interval };
   const session = await s.checkout.sessions.create({
     mode: "subscription",
-    customer: db.stripeCustomerId,
+    customer,
     client_reference_id: account.id,
     line_items: [
       {

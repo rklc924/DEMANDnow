@@ -4,12 +4,13 @@ import { money } from "@/lib/aging";
 import { getJurisdiction } from "@/lib/jurisdictions";
 import { loadRow } from "@/lib/ledger";
 import { CaseChecklist, ClaimSheet, ServiceOptions } from "../../guide";
+import { PartyCard } from "./party";
 
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string } }) {
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string } }) {
   const user = await requireUser();
   const { db, row } = await loadRow(user.id, params.id);
   if (!row) notFound();
@@ -33,9 +34,19 @@ export default async function CasePage({ params, searchParams }: { params: { id:
         <div className="banner warn">Limitation date is close: {fmt(row.limitation)} ({row.daysToLimitation} days). A claim must be started before then.</div>
       )}
 
+      <PartyCard
+        action={`/api/cases/${invoice.id}/party`}
+        party={db.parties?.[customer.id]}
+        invoiceName={customer.invoiceName ?? customer.name}
+        isBusiness={customer.kind === "business"}
+        status={searchParams.party}
+        error={searchParams.partyError}
+      />
+
       <div className="grid2">
         <div className="card">
           <h2>1. Demand letter</h2>
+          {!letter && !db.parties?.[customer.id]?.confirmedAt && <div className="banner warn">Confirm the debtor's legal name and address above before sending, so the letter matches the claim you may file later.</div>}
           {letter ? (
             <p>Sent {fmt(letter.sentAt)} by {letter.channel} ({letter.mode === "auto" ? "auto-sent" : "sent by you"}). Pay-by deadline {fmt(letter.deadline)}{deadlinePassed ? ", now passed." : "."}</p>
           ) : (
@@ -80,7 +91,28 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       )}
       <CaseChecklist row={row} j={j} progress={db.progress?.[invoice.id]} autoDone={letter && deadlinePassed ? ["demand"] : []} />
       {forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
-      <ServiceOptions forum={forum} served={searchParams.served} action={`/cases/${params.id}#service`} />
+      <ServiceOptions
+        forum={forum}
+        served={searchParams.served ?? db.servedDates?.[invoice.id]}
+        action={`/cases/${params.id}#service`}
+        booking={{
+          action: `/api/cases/${invoice.id}/serve`,
+          certificate: `/api/cases/${invoice.id}/certificate`,
+          isCompany: (db.parties?.[customer.id]?.type ?? (customer.kind === "business" ? "company" : "individual")) === "company",
+          serveOn: customer.name,
+          address: customer.address,
+          hasNotice: (db.progress?.[invoice.id]?.docs ?? []).some((d) => d.stepId === "notice"),
+          card: db.card ? `${db.card.brand.toUpperCase()} ending ${db.card.last4}` : undefined,
+          jobs: (db.serviceJobs ?? []).filter((j) => j.invoiceId === invoice.id),
+          message: searchParams.booked
+            ? { kind: "good", text: "Booked. Your card was charged and the process server has the documents. We'll email you when it's served." }
+            : searchParams.quote
+              ? { kind: "good", text: "Quote requested. We'll email you a price before anything is charged." }
+              : searchParams.serveError
+                ? { kind: "bad", text: searchParams.serveError }
+                : undefined,
+        }}
+      />
     </>
   );
 }

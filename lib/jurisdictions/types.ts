@@ -16,15 +16,20 @@ export interface Forum {
 }
 
 export interface ServiceFee {
+  id: string;
   area: string;
   price: number | null; // null = quoted
   note?: string;
+  /** Bookable online: the job is sent straight to our process server by email and text. */
+  dispatch?: boolean;
+  /** An extra on top of the area fee, not an area. */
+  addOn?: boolean;
 }
 
 export interface ServiceGuide {
   document: string;
   /** Fixed-fee process service. placeholder = prices not yet confirmed with a service provider. */
-  serverFees: { fees: ServiceFee[]; includes: string; placeholder: boolean };
+  serverFees: { fees: ServiceFee[]; includes: string; placeholder: boolean; /** Demand Now booking fee added to every job. */ bookingFee: number };
   selfServe: { title: string; detail: string; verify?: boolean }[];
   proof: { document: string; detail: string; verify?: boolean };
   /** Deadlines counted from the date of service. */

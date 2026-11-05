@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/aging";
-import { LIEN_ROLE_LABEL, LIEN_STEPS, lienDates } from "@/lib/liens";
+import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, LIEN_STEPS, LIEN_TITLE_SEARCH_FEE, filingQuote, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
 import { Checklist } from "../../guide";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86_400_000);
 
-export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string } }) {
+export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string } }) {
   const user = await requireUser();
   const db = await readDB(user.id);
   const l = db.liens?.find((x) => x.id === params.id);
@@ -19,6 +19,10 @@ export default async function LienPage({ params, searchParams }: { params: { id:
   const fileBy = dates.find((d) => d.key === "file")!;
   const left = daysTo(fileBy.date);
   const progress = db.progress?.[l.id];
+  const quote = filingQuote();
+  const hasForm5 = !!progress?.docs.some((d) => d.stepId === "claim" && d.status !== "issues");
+  const standardLate = quote.standardBy > fileBy.date;
+  const rushLate = quote.rushBy > fileBy.date;
   const hasIssues = progress?.docs.some((d) => d.status === "issues");
 
   return (
@@ -83,6 +87,58 @@ export default async function LienPage({ params, searchParams }: { params: { id:
           <dt>Amount claimed</dt><dd>{money(l.amount)}: only what is owed for work and materials actually supplied. An inflated lien can make you liable for the owner's costs.</dd>
         </dl>
       </div>
+
+      {!l.satisfied && (l.filing || !l.filedDate) && (
+        <div className="card" id="filing">
+          <h2>Have us file it for you</h2>
+          {searchParams.ordered && <div className="banner good">Order received. We'll file it by hand and send you proof of filing by {fmt(l.filing!.proofBy)}.</div>}
+          {searchParams.fileError && <div className="banner bad">{searchParams.fileError}</div>}
+          {l.filing ? (
+            <p>
+              {l.filedDate ? <span className="pill good">Filed {fmt(l.filedDate)}</span> : <span className="pill blue">In progress</span>}{" "}
+              Ordered {fmt(l.filing.orderedAt.slice(0, 10))}{l.filing.rush ? " (rush)" : ""}. Proof of filing by <b>{fmt(l.filing.proofBy)}</b>. Paid {money(l.filing.fee)}; Land Title Office fees are charged at cost once filed.
+            </p>
+          ) : (
+            <>
+              <p>We file your signed Claim of Lien by hand at the Land Title Office.</p>
+              <ul className="selfserve">
+                <li><b>${LIEN_FILING_FEE}</b> per lien plus the Land Title Office filing fees at cost</li>
+                <li>Proof of filing within {LIEN_STANDARD_DAYS} business days: by {fmt(quote.standardBy)} if you order now</li>
+                <li>Rush: proof within 1 to 3 business days if ordered before 12 PM, for <b>${LIEN_RUSH_FEE}</b> more: by {fmt(quote.rushBy)}{!quote.beforeNoon && " (it's past noon, so the clock starts next business day)"}</li>
+              </ul>
+              {!hasForm5 && <div className="banner warn">Upload your signed Claim of Lien (Form 5) in the checklist below first. We file the original you sign.</div>}
+              {standardLate && !rushLate && <div className="banner bad">Standard filing could land after your {fmt(fileBy.date)} deadline. Choose rush.</div>}
+              {rushLate && <div className="banner bad">Even rush may not beat your {fmt(fileBy.date)} deadline. File it yourself today through myLTSA, or send it for lawyer review.</div>}
+              <form action={`/api/liens/${l.id}/file`} method="post">
+                <label className="check"><input type="checkbox" name="rush" defaultChecked={standardLate} /> <span>Rush (+${LIEN_RUSH_FEE})</span></label>
+                <label className="check"><input type="checkbox" name="titleSearch" defaultChecked /> <span>Add a post-registration title search (+${LIEN_TITLE_SEARCH_FEE} plus Land Title Office costs). Recommended: it confirms the lien is on title and shows what ranks ahead of you.</span></label>
+                {rushLate && <label className="check"><input type="checkbox" name="lateOk" /> <span>I understand it may be filed after the deadline</span></label>}
+                <div className="row" style={{ marginTop: 12 }}>
+                  <button className="btn" disabled={!hasForm5}>Order filing · charge my card</button>
+                  <span className="note">Charged to your card on file, plus applicable tax.</span>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
+      )}
+
+      {(l.filedDate || l.filing) && !l.satisfied && (
+        <div className="card" id="priority">
+          <h2>Where does your lien rank?</h2>
+          {searchParams.title && <div className="banner good">Title search ordered. We'll email it to you. Then upload it in the checklist below.</div>}
+          <p>Filing the lien doesn't put you first in line. Mortgages and other charges registered before you usually get paid first if the property is sold. A <b>post-registration title search</b> confirms your lien is on the right title and shows everything ahead of it, so you know how much security you really have before spending money on a court action.</p>
+          {l.titleSearchOrder ? (
+            <p className="note"><span className="pill blue">Ordered {fmt(l.titleSearchOrder.orderedAt.slice(0, 10))}</span> We'll send it to you. Upload it under "Pull a post-registration title search" in the checklist.</p>
+          ) : (
+            <form action={`/api/liens/${l.id}/file`} method="post" className="row">
+              <input type="hidden" name="action" value="title" />
+              <button className="btn">Pull it for me · ${LIEN_TITLE_SEARCH_FEE} + Land Title Office costs</button>
+              <span className="note">Charged to your card on file, plus applicable tax.</span>
+            </form>
+          )}
+        </div>
+      )}
 
       <Checklist title="Lien checklist" steps={LIEN_STEPS} api={`/api/liens/${l.id}`} progress={progress} autoDone={l.filedDate ? ["dates", "file"] : []} disclaimer="This is legal information about BC builders liens, not legal advice. A lawyer should handle the court action." />
     </>

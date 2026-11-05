@@ -7,6 +7,8 @@ export interface Customer {
   kind: "business" | "consumer";
   email: string;
   address: string[]; // mailing lines
+  /** Name as it appears in the accounting system, when a confirmed legal name replaces it. */
+  invoiceName?: string;
 }
 
 export interface Invoice {
