@@ -17,7 +17,7 @@ function status(r: Row) {
   return <span className="pill grey">Watching</span>;
 }
 
-export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string } }) {
+export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string; verified?: string; resent?: string; reset?: string; unverified?: string } }) {
   if (!(await getUser())) return <Landing />;
   const user = await requireUser();
   const { db, rows } = await loadRows(user.id);
@@ -41,6 +41,14 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
           <button className="btn ghost">Run nightly sync</button>
         </form>
       </div>
+      {searchParams.verified && <div className="banner good">Email confirmed. You're all set to send demand letters.</div>}
+      {searchParams.reset && <div className="banner good">Password changed. Other devices have been signed out.</div>}
+      {!user.emailVerifiedAt && (
+        <div className={`banner ${searchParams.unverified ? "bad" : "warn"}`}>
+          {searchParams.resent ? "A new confirmation link is on its way." : `Confirm your email (${user.email}) to start sending demand letters.`}{" "}
+          <form action="/api/auth/resend" method="post" style={{ display: "inline" }}><button className="linkbtn">Resend the link</button></form>
+        </div>
+      )}
       {searchParams.autosent && (
         <div className="banner good">Nightly sync ran. {searchParams.autosent} letter(s) auto-sent.{Number(searchParams.held) > 0 && ` ${searchParams.held} held back: monthly plan limit reached.`}</div>
       )}

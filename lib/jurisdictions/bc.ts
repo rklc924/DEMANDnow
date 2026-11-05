@@ -56,11 +56,12 @@ export const BC: Jurisdiction = {
           // PLACEHOLDER prices: replace with the rates agreed with the process-serving partner.
           placeholder: true,
           includes: "Up to three attempts, GPS-stamped photos, and a completed Certificate of Service returned to you.",
+          bookingFee: 50, // Demand Now's fee on every booking (Rocky, 2026-11-05)
           fees: [
-            { area: "Metro Vancouver, Fraser Valley, Victoria", price: 95 },
-            { area: "Other BC cities (Kelowna, Kamloops, Nanaimo, Prince George and similar)", price: 125 },
-            { area: "Rural and remote BC", price: null, note: "Quoted before booking" },
-            { area: "Rush (attempt within 24 hours)", price: 60, note: "Added to the area fee" },
+            { id: "lower-mainland", area: "Lower Mainland (Metro Vancouver and Fraser Valley)", price: 95, dispatch: true },
+            { id: "bc-cities", area: "Other BC cities (Victoria, Kelowna, Kamloops, Nanaimo, Prince George and similar)", price: 125 },
+            { id: "remote", area: "Rural and remote BC", price: null, note: "Quoted before booking" },
+            { id: "rush", area: "Rush (attempt within 24 hours)", price: 60, note: "Added to the area fee", addOn: true },
           ],
         },
         selfServe: [

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { markDraftPaid } from "@/lib/oneoff";
-import { stripe, syncSubscription } from "@/lib/stripe";
+import { saveCardFromSetup, stripe, syncSubscription } from "@/lib/stripe";
 
 // Stripe webhook. Subscribe the endpoint to: checkout.session.completed,
 // customer.subscription.created, customer.subscription.updated, customer.subscription.deleted.
@@ -20,6 +20,7 @@ export async function POST(req: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object;
+      if (session.mode === "setup" && session.metadata?.purpose === "card") await saveCardFromSetup(session.id);
       if (session.metadata?.oneoffId && session.payment_status === "paid") await markDraftPaid(session.metadata.oneoffId, session.id);
       if (typeof session.subscription === "string") await syncSubscription(await s.subscriptions.retrieve(session.subscription));
       break;

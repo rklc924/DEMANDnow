@@ -1,5 +1,4 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { getDoc, getFile, putDoc, putFile } from "./db";
 import type { Customer, Invoice } from "./accounting/types";
 import type { Lien } from "./liens";
 import type { Interval, PlanId } from "./plans";
@@ -57,7 +56,7 @@ export interface CaseProgress {
 
 export type MailProvider = "microsoft" | "google";
 
-/** The customer's own mailbox and calendar, connected by OAuth. Tokens must be encrypted at rest before launch. */
+/** The customer's own mailbox and calendar, connected by OAuth. Tokens are stored encrypted (lib/crypto.ts). */
 export interface Mailbox {
   provider: MailProvider;
   address: string;
@@ -93,6 +92,14 @@ export interface DB {
   settings: Settings;
   subscription?: Subscription;
   stripeCustomerId?: string;
+  /** Card on file, required for every account. Only display details are stored; Stripe holds the card. */
+  card?: { brand: string; last4: string; expMonth?: number; expYear?: number; addedAt: string; paymentMethodId?: string; demo?: boolean };
+  /** Process-server bookings (full records live in the jobs table). */
+  serviceJobs?: { id: string; invoiceId: string; createdAt: string; status: string; total: number; areaId: string; servedAt?: string }[];
+  /** Date the starting document was served, per matter (from the server's report or entered by the client). */
+  servedDates?: Record<string, string>;
+  /** One-time charges against the card on file (process servers, add-ons). */
+  charges?: { id: string; at: string; amount: number; description: string; stripeId?: string; demo?: boolean }[];
   letters: LetterRecord[];
   paidInvoiceIds: string[];
   reviewRequests?: { invoiceId: string; requestedAt: string }[];
@@ -109,10 +116,7 @@ export interface DB {
   manual?: { customers: Customer[]; invoices: Invoice[] };
 }
 
-// DATA_DIR points at a persistent disk in hosting (Render: /var/data); defaults to ./data locally.
-export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
-const accountDir = (accountId: string) =>
-  path.join(DATA_DIR, "accounts", accountId.replace(/[^a-zA-Z0-9_-]/g, ""));
+export { DATA_DIR } from "./db";
 
 const defaultDB = (companyName: string): DB => ({
   company: {
@@ -130,17 +134,11 @@ const defaultDB = (companyName: string): DB => ({
 });
 
 export async function readDB(accountId: string): Promise<DB> {
-  try {
-    return JSON.parse(await fs.readFile(path.join(accountDir(accountId), "db.json"), "utf8")) as DB;
-  } catch {
-    return defaultDB("Your company");
-  }
+  return (await getDoc<DB>("accounts", accountId)) ?? defaultDB("Your company");
 }
 
 export async function writeDB(accountId: string, db: DB): Promise<void> {
-  const dir = accountDir(accountId);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, "db.json"), JSON.stringify(db, null, 2));
+  await putDoc("accounts", accountId, db);
 }
 
 export async function createAccountDB(accountId: string, companyName: string, email: string) {
@@ -149,12 +147,12 @@ export async function createAccountDB(accountId: string, companyName: string, em
   await writeDB(accountId, db);
 }
 
+const MIME: Record<string, string> = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg" };
+
+/** Saves an uploaded file for an account and returns the key to store on the record. */
 export async function saveUpload(accountId: string, name: string, bytes: Uint8Array): Promise<string> {
-  const dir = path.join(accountDir(accountId), "uploads");
-  await fs.mkdir(dir, { recursive: true });
-  const file = path.join(dir, name);
-  await fs.writeFile(file, bytes);
-  return file;
+  const ext = name.split(".").pop() ?? "";
+  return putFile(`${accountId.replace(/[^a-zA-Z0-9_-]/g, "")}/${name}`, bytes, MIME[ext] ?? "application/octet-stream");
 }
 
-export const readUpload = (file: string) => fs.readFile(file);
+export const readUpload = (key: string) => getFile(key);

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
 
-export default async function Billing({ searchParams }: { searchParams: { interval?: string; plan?: string; activated?: string; canceled?: string } }) {
+export default async function Billing({ searchParams }: { searchParams: { interval?: string; plan?: string; activated?: string; canceled?: string; card?: string } }) {
   const user = await requireUser();
   const db = await readDB(user.id);
   const u = usage(db);
@@ -21,6 +21,19 @@ export default async function Billing({ searchParams }: { searchParams: { interv
     <>
       <h1>Plan &amp; billing</h1>
       <p className="sub">{db.company.name}</p>
+      {searchParams.card && <div className="banner good">Card saved. {u.sub ? "" : "Now choose a plan."}</div>}
+      {db.card && (
+        <div className="card row" style={{ justifyContent: "space-between" }}>
+          <div><b>Card on file</b><div className="note">{db.card.brand.toUpperCase()} ending {db.card.last4}{db.card.expMonth ? `, expires ${db.card.expMonth}/${db.card.expYear}` : ""}{db.card.demo ? " (demo)" : ""}</div></div>
+          <a className="btn small ghost" href="/billing/card">Update card</a>
+        </div>
+      )}
+      {(db.charges ?? []).length > 0 && (
+        <div className="card">
+          <h2>One-time charges</h2>
+          <table className="agenda"><tbody>{db.charges!.slice().reverse().map((c) => <tr key={c.id}><td className="when">{new Date(c.at).toLocaleDateString("en-CA")}</td><td>{c.description}</td><td style={{ textAlign: "right" }}>${c.amount.toFixed(2)}</td></tr>)}</tbody></table>
+        </div>
+      )}
       {searchParams.activated && <div className="banner good">Your plan is active. You can send demand letters now.</div>}
       {searchParams.canceled && <div className="banner warn">Your plan is canceled. Existing cases stay available; sending is paused.</div>}
 

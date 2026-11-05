@@ -1,3 +1,4 @@
+import { decrypt, encrypt } from "./crypto";
 import type { Mailbox, MailProvider } from "./store";
 
 // One-touch mailbox + calendar connection. The customer signs in with Microsoft (Outlook / Microsoft 365)
@@ -83,8 +84,8 @@ export async function exchangeCode(req: Request, p: MailProvider, code: string):
     provider: p,
     address: emailFromIdToken(t.id_token) ?? "",
     connectedAt: new Date().toISOString(),
-    accessToken: t.access_token,
-    refreshToken: t.refresh_token,
+    accessToken: encrypt(t.access_token),
+    refreshToken: t.refresh_token ? encrypt(t.refresh_token) : undefined,
     expiresAt: Date.now() + t.expires_in * 1000,
     sendEmail: true,
     addReminders: true,
@@ -93,13 +94,14 @@ export async function exchangeCode(req: Request, p: MailProvider, code: string):
 
 /** Returns a valid access token, refreshing it (and mutating the mailbox) when it has expired. */
 async function accessToken(m: Mailbox): Promise<string> {
-  if (m.accessToken && m.expiresAt && m.expiresAt - 60_000 > Date.now()) return m.accessToken;
-  if (!m.refreshToken) throw new Error("Mailbox sign-in expired. Reconnect it in Settings.");
-  const t = await tokenRequest(m.provider, { grant_type: "refresh_token", refresh_token: m.refreshToken });
-  m.accessToken = t.access_token;
-  m.refreshToken = t.refresh_token ?? m.refreshToken;
+  if (m.accessToken && m.expiresAt && m.expiresAt - 60_000 > Date.now()) return decrypt(m.accessToken)!;
+  const refresh = decrypt(m.refreshToken);
+  if (!refresh) throw new Error("Mailbox sign-in expired. Reconnect it in Settings.");
+  const t = await tokenRequest(m.provider, { grant_type: "refresh_token", refresh_token: refresh });
+  m.accessToken = encrypt(t.access_token);
+  if (t.refresh_token) m.refreshToken = encrypt(t.refresh_token);
   m.expiresAt = Date.now() + t.expires_in * 1000;
-  return m.accessToken;
+  return t.access_token;
 }
 
 async function call(m: Mailbox, url: string, body: unknown, contentType = "application/json") {

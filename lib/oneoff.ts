@@ -1,9 +1,8 @@
 import { randomBytes } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
 import type { Customer, Invoice } from "./accounting/types";
 import { buildRow, type Row } from "./ledger";
-import { DATA_DIR, type Company, type DB } from "./store";
+import { getDoc, putDoc } from "./db";
+import type { Company, DB } from "./store";
 
 // One-off demand: no account needed. The user fills in the details (trial mode), sees what they
 // will get, then pays a single fee or subscribes before the letter and the guide unlock.
@@ -22,20 +21,12 @@ export interface Draft {
   invoice: Invoice;
 }
 
-const dir = path.join(DATA_DIR, "oneoff");
-const file = (id: string) => path.join(dir, `${id.replace(/[^a-f0-9]/g, "")}.json`);
-
 export async function saveDraft(d: Draft) {
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(file(d.id), JSON.stringify(d, null, 2));
+  await putDoc("drafts", d.id, d);
 }
 
 export async function readDraft(id: string): Promise<Draft | null> {
-  try {
-    return JSON.parse(await fs.readFile(file(id), "utf8"));
-  } catch {
-    return null;
-  }
+  return /^[a-f0-9]{24}$/.test(id) ? getDoc<Draft>("drafts", id) : null;
 }
 
 export const newDraftId = () => randomBytes(12).toString("hex");

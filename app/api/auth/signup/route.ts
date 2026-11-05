@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookieOptions, createUser, SESSION_COOKIE, sessionValue } from "@/lib/auth";
+import { sendVerification } from "@/lib/authmail";
 import { go } from "@/lib/http";
 import { readDraft, saveDraft } from "@/lib/oneoff";
 import { readDB, writeDB } from "@/lib/store";
@@ -24,8 +25,10 @@ export async function POST(req: Request) {
       draft.importedTo = user.id;
       await saveDraft(draft);
     }
-    const res = go(req, plan ? `/billing?plan=${encodeURIComponent(plan)}` : "/billing");
-    (res as NextResponse).cookies.set(SESSION_COOKIE, sessionValue(user.id), cookieOptions);
+    await sendVerification(req, user).catch((e) => console.error("verification email failed", e));
+    // Every account adds a card first, then picks a plan.
+    const res = go(req, `/billing/card${plan ? `?plan=${encodeURIComponent(plan)}` : ""}`);
+    (res as NextResponse).cookies.set(SESSION_COOKIE, sessionValue(user), cookieOptions);
     return res;
   } catch (e) {
     return go(req, `/signup?error=${encodeURIComponent((e as Error).message)}${plan ? `&plan=${plan}` : ""}`);

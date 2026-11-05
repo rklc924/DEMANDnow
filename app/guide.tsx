@@ -51,7 +51,17 @@ const addDays = (iso: string, n: number) => {
 };
 
 /** Two ways to serve: a fixed-fee process server, or do it yourself and file proof. Then dates counted from service. */
-export function ServiceOptions({ forum, served, action }: { forum: Row["forum"]; served?: string; action: string }) {
+export interface BookingProps {
+  action: string; // POST endpoint
+  serveOn: string;
+  address: string[];
+  hasNotice: boolean;
+  card?: string; // "VISA ending 4242"
+  jobs: { id: string; createdAt: string; status: string; total: number; servedAt?: string }[];
+  message?: { kind: "good" | "bad"; text: string };
+}
+
+export function ServiceOptions({ forum, served, action, booking }: { forum: Row["forum"]; served?: string; action: string; booking?: BookingProps }) {
   const s = forum.service;
   if (!s) return null;
   const servedOk = served && /^\d{4}-\d{2}-\d{2}$/.test(served) ? served : undefined;
@@ -73,7 +83,8 @@ export function ServiceOptions({ forum, served, action }: { forum: Row["forum"];
             </tbody>
           </table>
           <p className="note">{s.serverFees.includes} Prices in CAD plus tax. Service costs can usually be claimed back from the defendant as part of your expenses.</p>
-          {s.serverFees.placeholder && <p className="note"><span className="pill grey">sample prices</span> Booking from the app opens at launch.</p>}
+          <p className="note">A ${s.serverFees.bookingFee} Demand Now booking fee is added to each job. {s.serverFees.placeholder && <span className="pill grey">sample prices</span>}</p>
+          {booking ? <BookingForm s={s} b={booking} /> : <p className="note"><a href="/signup?plan=standard">Subscribe</a> to book a process server from your account.</p>}
         </div>
         <div className="opt">
           <h3>Option 2: Serve it yourself</h3>
@@ -110,6 +121,52 @@ export function ServiceOptions({ forum, served, action }: { forum: Row["forum"];
     </div>
   );
 }
+
+function BookingForm({ s, b }: { s: NonNullable<Row["forum"]["service"]>; b: BookingProps }) {
+  const areas = s.serverFees.fees.filter((f) => !f.addOn);
+  const rush = s.serverFees.fees.find((f) => f.addOn);
+  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric" });
+  return (
+    <div className="booking">
+      {b.message && <div className={`banner ${b.message.kind}`}>{b.message.text}</div>}
+      {b.jobs.length > 0 && (
+        <ul className="jobs">
+          {b.jobs.map((j) => (
+            <li key={j.id}>
+              <span className={`pill ${j.status === "served" ? "good" : j.status === "failed" ? "bad" : "blue"}`}>
+                {j.status === "served" ? `Served ${j.servedAt}` : j.status === "dispatched" ? "With the process server" : j.status === "quote" ? "Quote requested" : j.status}
+              </span>{" "}
+              Booked {fmtDate(j.createdAt)}{j.total ? ` · $${j.total}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      <details open={b.jobs.length === 0}>
+        <summary className="btn small">Book a process server</summary>
+        <form action={b.action} method="post" encType="multipart/form-data" style={{ marginTop: 10 }}>
+          <label>Where is the defendant?</label>
+          <select name="area" defaultValue={areas[0]?.id}>
+            {areas.map((a) => <option key={a.id} value={a.id}>{a.area}: {a.price === null ? "quote" : `$${a.price} + $${s.serverFees.bookingFee} booking`}</option>)}
+          </select>
+          {rush && <label className="check" style={{ marginTop: 8 }}><input type="checkbox" name="rush" /> <span>Rush, attempt within 24 hours (+${rush.price})</span></label>}
+          <label>Serve on</label><input type="text" name="serveOn" defaultValue={b.serveOn} />
+          <label>Last known address (one line per row)</label><textarea name="address" defaultValue={b.address.join(NL)} required />
+          <label>Notes for the server (best times, description, buzzer)</label><input type="text" name="notes" />
+          <div className="grid2" style={{ gap: 10 }}>
+            <div><label>Court file number</label><input type="text" name="courtFileNo" /></div>
+            <div><label>Registry</label><input type="text" name="registry" placeholder="e.g. Vancouver (Robson Square)" /></div>
+          </div>
+          {!b.hasNotice && (<><label>Your filed {s.document} (PDF or photo)</label><input type="file" name="file" accept="application/pdf,image/png,image/jpeg" required /></>)}
+          {b.hasNotice && <p className="note">We'll send the filed {s.document} you uploaded in the checklist, with a pre-filled Certificate of Service for the server to sign.</p>}
+          <button className="btn" style={{ marginTop: 10 }}>Book and charge my card{b.card ? ` (${b.card})` : ""}</button>
+          <p className="note">Lower Mainland jobs go straight to our process server by email and text. Other areas: we email you a quote first, and nothing is charged until you accept.</p>
+        </form>
+      </details>
+    </div>
+  );
+}
+
+const NL = String.fromCharCode(10);
 
 /** The matter's steps as a tick-box checklist. Steps that need outside proof take an upload, which is checked. */
 export function CaseChecklist({ row, j, progress, autoDone }: { row: Row; j: Jurisdiction; progress?: CaseProgress; autoDone?: string[] }) {
