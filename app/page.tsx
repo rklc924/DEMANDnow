@@ -17,7 +17,7 @@ function status(r: Row) {
   return <span className="pill grey">Watching</span>;
 }
 
-export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string; verified?: string; resent?: string; reset?: string; unverified?: string } }) {
+export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string; verified?: string; resent?: string; reset?: string; unverified?: string; added?: string; removed?: string } }) {
   if (!(await getUser())) return <Landing />;
   const user = await requireUser();
   const { db, rows } = await loadRows(user.id);
@@ -28,7 +28,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
     return { b, n: rs.length, sum: rs.reduce((s, r) => s + r.invoice.amountDue, 0) };
   });
   const queue = rows.filter((r) => r.days >= db.settings.thresholdDays);
-  const watching = rows.filter((r) => r.days < db.settings.thresholdDays && r.days > 0);
+  const watching = rows.filter((r) => r.days < db.settings.thresholdDays && !r.paid);
 
   return (
     <>
@@ -37,10 +37,15 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
           <h1>Receivables</h1>
           <p className="sub">Synced from: sample ledger · {db.company.name} · auto-send is {db.settings.autoSend ? "on for business debtors" : "off"}</p>
         </div>
-        <form action="/api/sync" method="post">
-          <button className="btn ghost">Run nightly sync</button>
-        </form>
+        <div className="row">
+          <a className="btn" href="/invoices/new">+ Add invoice</a>
+          <form action="/api/sync" method="post">
+            <button className="btn ghost">Run nightly sync</button>
+          </form>
+        </div>
       </div>
+      {searchParams.added && <div className="banner good">Invoice {searchParams.added} added. We'll start the demand workflow if it goes {db.settings.thresholdDays} days past due.</div>}
+      {searchParams.removed && <div className="banner good">Invoice {searchParams.removed} removed.</div>}
       {searchParams.verified && <div className="banner good">Email confirmed. You're all set to send demand letters.</div>}
       {searchParams.reset && <div className="banner good">Password changed. Other devices have been signed out.</div>}
       {!user.emailVerifiedAt && (
@@ -97,7 +102,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
           <tbody>
             {watching.map((r) => (
               <tr key={r.invoice.id}>
-                <td>{r.invoice.number}</td><td>{r.customer.name}</td><td className="num">{r.days}</td>
+                <td><a href={`/cases/${r.invoice.id}`}>{r.invoice.number}</a></td><td>{r.customer.name}</td><td className="num">{r.days > 0 ? r.days : "not due"}</td>
                 <td className="num">{money(r.invoice.amountDue)}</td><td>{db.settings.thresholdDays - r.days} days</td>
               </tr>
             ))}

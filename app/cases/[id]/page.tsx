@@ -65,6 +65,9 @@ export default async function CasePage({ params, searchParams }: { params: { id:
             {!row.paid && (
               <form action={`/api/paid/${invoice.id}`} method="post"><button className="btn ghost">Mark paid</button></form>
             )}
+            {db.manual?.invoices.some((i) => i.id === invoice.id) && !letter && (
+              <form action={`/api/invoices/${invoice.id}/delete`} method="post"><button className="btn ghost">Delete invoice</button></form>
+            )}
           </div>
         </div>
 
