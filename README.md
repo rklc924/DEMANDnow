@@ -23,6 +23,14 @@ The prototype uses a sample ledger (`lib/accounting/sample.ts`) and a JSON file 
 - **Company & letterhead** (`/settings`): upload a letterhead, enter the company details and set the sending rules. Auto-send goes to business customers only.
 - **Case page** (`/cases/:id`): preview the letter on your letterhead or as a firm letter, send it, mark the debt paid, request a lawyer review, and follow the BC step-by-step guide. Small Claims cases also get the Notice of Claim data.
 
+## Put it online (Render)
+
+1. Sign in at render.com with GitHub.
+2. Choose **New > Blueprint**, pick this repository, and click **Apply**. `render.yaml` creates the web service, a 1 GB disk for data, and a session secret.
+3. The site goes live at `https://demand-now.onrender.com` or similar. The Starter plan costs about US$7/month and is needed for the disk.
+
+Without Stripe keys the site runs in demo mode. Add them later under Environment in the Render dashboard.
+
 ## Payments setup (Stripe)
 
 1. Create a Stripe account in CAD and copy the secret key into `STRIPE_SECRET_KEY` (see `.env.example`).

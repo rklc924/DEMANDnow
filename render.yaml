@@ -1,0 +1,29 @@
+# Render Blueprint: New > Blueprint > pick this repo > Apply.
+# Starter plan is needed for the persistent disk that holds accounts, letters and letterheads.
+services:
+  - type: web
+    name: demand-now
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start -- -p $PORT
+    healthCheckPath: /pricing
+    disk:
+      name: demand-now-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      - key: SESSION_SECRET
+        generateValue: true
+      # Add these in the Render dashboard when Stripe is ready (blank = demo mode):
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: APP_URL
+        sync: false

@@ -53,7 +53,8 @@ export interface DB {
   manual?: { customers: Customer[]; invoices: Invoice[] };
 }
 
-export const DATA_DIR = path.join(process.cwd(), "data");
+// DATA_DIR points at a persistent disk in hosting (Render: /var/data); defaults to ./data locally.
+export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
 const accountDir = (accountId: string) =>
   path.join(DATA_DIR, "accounts", accountId.replace(/[^a-zA-Z0-9_-]/g, ""));
 
