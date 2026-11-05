@@ -14,7 +14,7 @@ const WHO = [
 
 const STEPS = [
   { n: "1", t: "Connect your books", d: "QuickBooks, Xero, FreshBooks, Sage or NetSuite. We watch your receivables for you." },
-  { n: "2", t: "Demand at 90 days", d: "A firm, lawyer-drafted demand letter on your letterhead, sent from your own email. Automatically, or with one click." },
+  { n: "2", t: "Demand at 90 days", d: "Demand Now generates a firm demand letter on your letterhead and sends it from your own email. Automatically, or with one click." },
   { n: "3", t: "Follow-ups in your calendar", d: "Payment deadline, next step, limitation date. Nothing slips." },
   { n: "4", t: "Escalate the right way", d: "Still unpaid? Step-by-step through the CRT or Small Claims, with your forms prepared and checked." },
 ];

@@ -29,8 +29,8 @@ export default function About() {
 
       <div className="grid3 about-points">
         <div className="card">
-          <h3>Our own wording</h3>
-          <p>The demand letters are based on the precedents we use in our own collections practice, adapted for businesses to send on their own letterhead.</p>
+          <h3>Letters the software writes for you</h3>
+          <p>Demand Now generates each letter from templates modelled on proven collection practice, fills in your invoice details, and puts it on your own letterhead for you to send.</p>
         </div>
         <div className="card">
           <h3>The right forum, every time</h3>
