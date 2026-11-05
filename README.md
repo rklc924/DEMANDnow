@@ -28,6 +28,8 @@ The prototype uses a sample ledger (`lib/accounting/sample.ts`) and a JSON file 
 - **Calendar** (`/calendar`): month view and agenda of every deadline, follow-up, limitation date and lien deadline, with overdue, upcoming and collected filters, and an .ics of everything.
 - **Builders lien add-on** (`/liens`): for contractors, subtrades, workers and suppliers. Collects the critical dates, calculates the 45-day filing deadline (s. 20), the one-year action deadline and the 21-day notice deadline (s. 33), fills the Form 5 data, and runs a checklist with checked uploads (title search, signed Form 5, registration). The per-lien price ($149) is a placeholder.
 
+- **User manual** (`/help`): customer manual built from the Markdown chapters in `content/manual/`. Prices are filled in from the code. Every feature PR updates it (see `CLAUDE.md`); `npm run check:manual` and the "User manual" GitHub Action fail if a page has no chapter.
+
 ## Put it online (Render)
 
 1. Sign in at render.com with GitHub.

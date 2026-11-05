@@ -1,0 +1,17 @@
+name: User manual
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Every page has a manual chapter, and prices come from the code
+        run: node scripts/check-manual.mjs

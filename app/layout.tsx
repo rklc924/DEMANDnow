@@ -23,6 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <a href="/liens">Liens</a>
                   <a href="/settings">Settings</a>
                   <a href="/billing">Billing</a>
+                  <a href="/help">Help</a>
                 </nav>
                 <div className="row" style={{ marginLeft: "auto", fontSize: 13 }}>
                   {u?.plan ? (
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <a href="/about">About us</a>
                 <a href="/start">One-off demand</a>
                 <a href="/pricing">Pricing</a>
+                <a href="/help">Help</a>
                 <a href="/login">Log in</a>
                 <a className="btn small" href="/signup">Start</a>
               </nav>
@@ -52,6 +54,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <span>© {new Date().getFullYear()} Demand Now</span>
             <a href="/about">About us</a>
             <a href="/pricing">Pricing</a>
+            <a href="/help">User manual</a>
             <a href="/support">Support</a>
             <a href="/terms">Terms</a>
             <a href="/privacy">Privacy</a>
