@@ -99,7 +99,20 @@ export interface DB {
   /** Date the starting document was served, per matter (from the server's report or entered by the client). */
   servedDates?: Record<string, string>;
   /** One-time charges against the card on file (process servers, add-ons). */
-  charges?: { id: string; at: string; amount: number; description: string; stripeId?: string; demo?: boolean }[];
+  charges?: {
+    id: string;
+    at: string;
+    amount: number;
+    description: string;
+    stripeId?: string;
+    demo?: boolean;
+    kind?: "subscription" | "service";
+    /** Stripe's own invoice number and pages, for subscription payments. */
+    number?: string;
+    invoiceUrl?: string;
+    invoicePdf?: string;
+    extraFeesNote?: string;
+  }[];
   letters: LetterRecord[];
   paidInvoiceIds: string[];
   reviewRequests?: { invoiceId: string; requestedAt: string }[];
@@ -120,6 +133,14 @@ export interface DB {
   aiConnections?: { grantId: string; clientName: string; connectedAt: string }[];
   /** Where each hand-entered matter came from, by invoice id (e.g. "Claude"). */
   matterSource?: Record<string, string>;
+  /** Who did what, newest last (capped). Admins see it on the Team page. */
+  activity?: { at: string; userId: string; name: string; action: string; link?: string }[];
+}
+
+/** Records an action by a team member. Call before writeDB. */
+export function logActivity(db: DB, user: { id: string; name: string; email: string }, action: string, link?: string) {
+  (db.activity ??= []).push({ at: new Date().toISOString(), userId: user.id, name: user.name || user.email, action, link });
+  if (db.activity.length > 500) db.activity = db.activity.slice(-500);
 }
 
 export { DATA_DIR } from "./db";

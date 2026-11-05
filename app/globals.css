@@ -265,3 +265,19 @@ details > summary { cursor: pointer; padding: 6px 0; }
 .faq:last-child { border-bottom: 0; }
 .faq summary { cursor: pointer; font-weight: 600; }
 .faq p { margin: 8px 0 0; }
+
+/* Team page */
+.team-list { display: grid; gap: 12px; }
+.team-row { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+.team-row:first-child { border-top: 0; }
+.team-row.off { opacity: .6; }
+.team-row .controls { display: grid; gap: 10px; }
+.team-row .perms { display: grid; gap: 4px; }
+.team-row select { width: auto; }
+.btn.danger { background: #fff; color: #B42318; border: 1px solid #F3C0BA; }
+@media (max-width: 720px) { .team-row { grid-template-columns: 1fr; } }
+.team-row .perms .btn { justify-self: start; }
+.team-row .member-info .pill { margin-right: 4px; }
+@media (max-width: 800px) { header.top nav { flex-wrap: wrap; gap: 4px 14px; } }
+@media (max-width: 800px) { header.top .row { flex-wrap: wrap; } header.top nav a { white-space: nowrap; } .card > table, .card table { display: block; overflow-x: auto; } }
+@media (max-width: 800px) { footer.foot .wrap { flex-wrap: wrap; row-gap: 6px; } }

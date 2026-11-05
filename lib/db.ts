@@ -104,6 +104,21 @@ export async function putDoc(table: Table, id: string, data: unknown): Promise<v
   await fs.writeFile(f, JSON.stringify(data, null, 2));
 }
 
+/** Every document in a table. Fine at our scale; add paging when it isn't. */
+export async function listDocs<T>(table: Table): Promise<T[]> {
+  if (usePg()) {
+    const r = await q(`select data from ${table}`);
+    return r.rows.map((x) => x.data as T);
+  }
+  try {
+    const dir = path.join(DATA_DIR, table);
+    const names = (await fs.readdir(dir)).filter((n) => n.endsWith(".json"));
+    return (await Promise.all(names.map(async (n) => JSON.parse(await fs.readFile(path.join(dir, n), "utf8")) as T)));
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteDoc(table: Table, id: string): Promise<void> {
   if (!id) return;
   if (usePg()) {

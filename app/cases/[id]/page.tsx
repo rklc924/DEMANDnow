@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { money } from "@/lib/aging";
 import { getJurisdiction } from "@/lib/jurisdictions";
 import { loadRow } from "@/lib/ledger";
@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string } }) {
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string; noPermission?: string } }) {
   const user = await requireUser();
-  const { db, row } = await loadRow(user.id, params.id);
+  const { db, row } = await loadRow(acct(user), params.id);
   if (!row) notFound();
   const j = getJurisdiction(db.company.jurisdiction);
   const { invoice, customer, forum, letter } = row;
@@ -24,6 +24,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
   return (
     <>
       <p className="note"><a href="/">← Receivables</a></p>
+      {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
       <h1>{invoice.number} · {customer.name}</h1>
       <p className="sub">{money(invoice.amountDue)} · {row.days} days past due · {customer.kind} customer</p>
       {searchParams.sent && <div className="banner good">Demand letter sent{letter?.emailedTo ? ` by email to ${letter.emailedTo}` : ""}. Deadline to pay: {letter && fmt(letter.deadline)}.{db.mailbox?.addReminders ? " Follow-up reminders added to your calendar." : ""}</div>}

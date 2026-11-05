@@ -1,5 +1,5 @@
 import { BUCKETS, money } from "@/lib/aging";
-import { getUser, requireUser } from "@/lib/auth";
+import { getUser, requireUser, acct } from "@/lib/auth";
 import { Landing } from "./landing";
 import { loadRows, type Row } from "@/lib/ledger";
 import { usage } from "@/lib/usage";
@@ -17,10 +17,10 @@ function status(r: Row) {
   return <span className="pill grey">Watching</span>;
 }
 
-export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string; verified?: string; resent?: string; reset?: string; unverified?: string; added?: string; removed?: string } }) {
+export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string; verified?: string; resent?: string; reset?: string; unverified?: string; added?: string; removed?: string; adminOnly?: string; noPermission?: string } }) {
   if (!(await getUser())) return <Landing />;
   const user = await requireUser();
-  const { db, rows } = await loadRows(user.id);
+  const { db, rows } = await loadRows(acct(user));
   const u = usage(db);
   const open = rows.filter((r) => !r.paid);
   const totals = BUCKETS.map((b) => {
@@ -44,6 +44,8 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
           </form>
         </div>
       </div>
+      {searchParams.adminOnly && <div className="banner bad">Only your organization's admin can do that. Ask an admin on the Team page to help.</div>}
+      {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
       {searchParams.added && <div className="banner good">Invoice {searchParams.added} added. We'll start the demand workflow if it goes {db.settings.thresholdDays} days past due.</div>}
       {searchParams.removed && <div className="banner good">Invoice {searchParams.removed} removed.</div>}
       {searchParams.verified && <div className="banner good">Email confirmed. You're all set to send demand letters.</div>}

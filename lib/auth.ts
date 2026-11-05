@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { findUserIdByEmail, getDoc, putDoc } from "./db";
+import { findUserIdByEmail, getDoc, putDoc, listDocs } from "./db";
 import { createAccountDB, readDB } from "./store";
 
 // Email + password accounts with a signed session cookie, email verification and password reset.
@@ -20,6 +20,42 @@ export interface User {
   /** One-time tokens, stored hashed. */
   verifyToken?: { hash: string; expires: string };
   resetToken?: { hash: string; expires: string };
+  /** The organization this login belongs to. Missing means the user's own organization (id = user id). */
+  orgId?: string;
+  /** Admin controls billing, settings, add-ons and the team. Regular users work on matters. Missing means admin. */
+  role?: Role;
+  /** Set by an admin to block this login. */
+  disabled?: boolean;
+  /** Restrictions an admin has placed on a regular user. Missing means allowed. */
+  permissions?: Partial<Record<Permission, boolean>>;
+}
+
+export type Permission = "sendLetters" | "orderServices" | "manageInvoices";
+export const PERMISSION_LABEL: Record<Permission, string> = {
+  sendLetters: "Send demand letters",
+  orderServices: "Order paid services (process servers, lien filings, searches)",
+  manageInvoices: "Add, delete and mark invoices paid",
+};
+/** Admins can do everything; regular users can do what the admin hasn't switched off. */
+export const can = (u: Pick<User, "role" | "permissions">, p: Permission) => isAdmin(u) || u.permissions?.[p] !== false;
+
+/** Everyone who can log in to an organization. */
+export async function orgUsers(accountId: string): Promise<User[]> {
+  const all = await listDocs<User>("users");
+  return all.filter((u) => acct(u) === accountId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export type Role = "admin" | "member";
+export const ROLE_LABEL: Record<Role, string> = { admin: "Admin", member: "Regular user" };
+
+/** The organization (account) a login works in. */
+export const acct = (u: Pick<User, "id" | "orgId">) => u.orgId ?? u.id;
+export const isAdmin = (u: Pick<User, "role">) => (u.role ?? "admin") === "admin";
+
+/** For callers that only hold a user id (AI assistant tokens). */
+export async function accountIdForUser(userId: string) {
+  const u = await readUser(userId);
+  return u ? acct(u) : userId;
 }
 
 export const SESSION_COOKIE = "dc_session";
@@ -45,7 +81,7 @@ function checkPassword(password: string) {
   if (password.length < 10) throw new Error("Password must be at least 10 characters.");
 }
 
-export async function createUser(input: { email: string; password: string; name: string; company: string }) {
+export async function createUser(input: { email: string; password: string; name: string; company: string; orgId?: string; role?: Role }) {
   const email = normalize(input.email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid email.");
   checkPassword(input.password);
@@ -60,14 +96,16 @@ export async function createUser(input: { email: string; password: string; name:
     hash: hashPassword(input.password, salt),
     createdAt: new Date().toISOString(),
     sessionVersion: 1,
+    ...(input.orgId ? { orgId: input.orgId, role: input.role ?? "member" } : { role: "admin" as Role }),
   };
   await saveUser(user);
-  await createAccountDB(user.id, user.company, user.email);
+  if (!input.orgId) await createAccountDB(user.id, user.company, user.email);
   return user;
 }
 
 export async function verifyLogin(email: string, password: string): Promise<User | null> {
   const user = await findUserByEmail(email);
+  if (user?.disabled) return null;
   if (!user) {
     hashPassword(password, "timing-equaliser"); // same work whether or not the account exists
     return null;
@@ -144,14 +182,15 @@ export async function getUser(): Promise<User | null> {
   const given = Buffer.from(mac);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
   const user = await readUser(id);
-  return user && String(user.sessionVersion ?? 1) === version ? user : null;
+  return user && !user.disabled && String(user.sessionVersion ?? 1) === version ? user : null;
 }
 
 /** For pages. Signed-out visitors go to /login. Unless card is false, accounts without a card on file go to add one. */
-export async function requireUser(opts: { card?: boolean } = {}): Promise<User> {
+export async function requireUser(opts: { card?: boolean; admin?: boolean } = {}): Promise<User> {
   const user = await getUser();
   if (!user) redirect("/login");
-  if (opts.card !== false && !(await readDB(user.id)).card) redirect("/billing/card");
+  if (opts.admin && !isAdmin(user)) redirect("/?adminOnly=1");
+  if (opts.card !== false && isAdmin(user) && !(await readDB(acct(user))).card) redirect("/billing/card");
   return user;
 }
 

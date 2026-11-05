@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { money } from "@/lib/aging";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
@@ -10,7 +10,7 @@ const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime()
 
 export default async function Liens({ searchParams }: { searchParams: { error?: string } }) {
   const user = await requireUser();
-  const db = await readDB(user.id);
+  const db = await readDB(acct(user));
 
   if (!db.addons?.liens) {
     return (

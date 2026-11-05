@@ -1,3 +1,4 @@
+import { acct } from "@/lib/auth";
 import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
@@ -7,7 +8,7 @@ const date = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\d{4}
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
     const f = await req.formData();
-    const db = await readDB(user.id);
+    const db = await readDB(acct(user));
     const l = db.liens?.find((x) => x.id === params.id);
     if (!l) return go(req, "/liens");
     for (const k of ["lastWorkDate", "completionCertificateDate", "headContractEndDate", "filedDate", "noticeToCommenceServedDate"] as const) {
@@ -22,6 +23,6 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       const p = ((db.progress ??= {})[l.id] ??= { done: [], docs: [] });
       p.done = [...new Set([...p.done, "dates", "file"])];
     }
-    await writeDB(user.id, db);
+    await writeDB(acct(user), db);
     return go(req, `/liens/${l.id}?saved=1`);
   });

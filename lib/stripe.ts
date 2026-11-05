@@ -128,6 +128,30 @@ export async function createPortal(req: Request, accountId: string) {
   return session.url;
 }
 
+/** Records a paid Stripe invoice (plan payments) on the account, with Stripe's invoice page and PDF. */
+export async function recordInvoicePayment(inv: Stripe.Invoice) {
+  const s = stripe()!;
+  const customerId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+  if (!customerId) return;
+  const customer = await s.customers.retrieve(customerId);
+  const accountId = "deleted" in customer ? undefined : customer.metadata?.accountId;
+  if (!accountId) return;
+  const db = await readDB(accountId);
+  if ((db.charges ?? []).some((c) => c.stripeId === inv.id)) return;
+  (db.charges ??= []).push({
+    id: inv.id.slice(-10).toLowerCase(),
+    at: new Date((inv.status_transitions?.paid_at ?? inv.created) * 1000).toISOString(),
+    amount: inv.amount_paid / 100,
+    description: inv.lines.data[0]?.description ?? "Demand Now subscription",
+    stripeId: inv.id,
+    kind: "subscription",
+    number: inv.number ?? undefined,
+    invoiceUrl: inv.hosted_invoice_url ?? undefined,
+    invoicePdf: inv.invoice_pdf ?? undefined,
+  });
+  await writeDB(accountId, db);
+}
+
 /** Writes a Stripe subscription onto the account it belongs to. Called from the webhook. */
 export async function syncSubscription(sub: Stripe.Subscription) {
   const { accountId, plan, interval } = sub.metadata as { accountId?: string; plan?: PlanId; interval?: Interval };
