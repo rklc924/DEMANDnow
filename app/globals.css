@@ -40,7 +40,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
-input[type=text], input[type=number], textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; font: inherit; background: #fff; }
+input[type=text], input[type=number], input[type=email], input[type=password], textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; font: inherit; background: #fff; }
 textarea { min-height: 70px; }
 .check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; font-size: 14px; }
 .note { font-size: 13px; color: var(--muted); }
