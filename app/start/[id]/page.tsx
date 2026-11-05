@@ -5,13 +5,13 @@ import { accruedInterest } from "@/lib/letters/template";
 import { draftRow, ONE_OFF_PRICE, readDraft } from "@/lib/oneoff";
 import { PLANS, priceLabel } from "@/lib/plans";
 import { billingLive } from "@/lib/stripe";
-import { ClaimSheet, StepGuide } from "../../guide";
+import { ClaimSheet, ServiceOptions, StepGuide } from "../../guide";
 
 export const dynamic = "force-dynamic";
 
 // One-off demand, step 2: a summary of what they'll get, then pay $75 or subscribe.
 // After payment the same page unlocks the letter download and the full guide.
-export default async function OneOff({ params, searchParams }: { params: { id: string }; searchParams: { paid?: string } }) {
+export default async function OneOff({ params, searchParams }: { params: { id: string }; searchParams: { paid?: string; served?: string } }) {
   const d = await readDraft(params.id);
   if (!d) notFound();
   const row = draftRow(d);
@@ -67,6 +67,7 @@ export default async function OneOff({ params, searchParams }: { params: { id: s
 
       <StepGuide row={row} j={j} locked={!d.paid} />
       {d.paid && row.forum.id === "small-claims" && <ClaimSheet row={row} company={d.company} />}
+      {d.paid && <ServiceOptions forum={row.forum} served={searchParams.served} action={`/start/${d.id}#service`} />}
     </>
   );
 }

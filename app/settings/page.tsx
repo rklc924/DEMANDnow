@@ -1,11 +1,12 @@
 import { requireUser } from "@/lib/auth";
+import { providerLabel, providerLive } from "@/lib/mailbox";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export default async function Settings({ searchParams }: { searchParams: { saved?: string } }) {
+export default async function Settings({ searchParams }: { searchParams: { saved?: string; mailError?: string } }) {
   const user = await requireUser();
-  const { company: c, settings: s } = await readDB(user.id);
+  const { company: c, settings: s, mailbox: m } = await readDB(user.id);
   return (
     <>
       <h1>Company &amp; letterhead</h1>
@@ -40,6 +41,35 @@ export default async function Settings({ searchParams }: { searchParams: { saved
             <div style={{ marginTop: 14 }}><button className="btn">Save rules</button></div>
           </form>
         </div>
+      </div>
+      <div className="card" id="mailbox">
+        <h2>Email and calendar</h2>
+        {searchParams.mailError && <div className="banner bad">{searchParams.mailError}</div>}
+        {m ? (
+          <>
+            <p>
+              <span className="pill good">Connected</span> {providerLabel(m.provider)} · <b>{m.address}</b>
+              {m.demo && <span className="pill grey" style={{ marginLeft: 8 }}>demo</span>}
+            </p>
+            <form action="/api/connect/prefs" method="post">
+              <label className="check"><input type="checkbox" name="sendEmail" defaultChecked={m.sendEmail} /> <span>Email each demand letter from this address, with the PDF attached, the moment it's sent</span></label>
+              <label className="check"><input type="checkbox" name="addReminders" defaultChecked={m.addReminders} /> <span>Add follow-up reminders (BF dates) to this calendar: payment deadline, next step, filing check and limitation warning</span></label>
+              <div className="row" style={{ marginTop: 12 }}>
+                <button className="btn small">Save</button>
+              </div>
+            </form>
+            <form action="/api/connect/disconnect" method="post" style={{ marginTop: 8 }}><button className="btn small ghost">Disconnect</button></form>
+          </>
+        ) : (
+          <>
+            <p className="note" style={{ marginTop: 0 }}>Connect once and demand letters go out from your own mailbox, and the follow-up dates land in your own calendar. You can turn either off.</p>
+            <div className="row" style={{ gap: 10 }}>
+              <form action="/api/connect/microsoft" method="post"><button className="btn">Connect Outlook / Microsoft 365</button></form>
+              <form action="/api/connect/google" method="post"><button className="btn ghost">Connect Gmail / Google</button></form>
+            </div>
+            <p className="note">Using another email app? Letters still go out from Demand Now, and each matter has an .ics file you can add to Apple Calendar or any other calendar.{!providerLive("microsoft") && !providerLive("google") ? " Demo mode: connecting simulates a mailbox." : ""}</p>
+          </>
+        )}
       </div>
       <div className="card">
         <h2>Company details on the letter</h2>

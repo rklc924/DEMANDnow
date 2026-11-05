@@ -3,13 +3,13 @@ import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/aging";
 import { getJurisdiction } from "@/lib/jurisdictions";
 import { loadRow } from "@/lib/ledger";
-import { ClaimSheet, StepGuide } from "../../guide";
+import { CaseChecklist, ClaimSheet, ServiceOptions } from "../../guide";
 
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string } }) {
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string } }) {
   const user = await requireUser();
   const { db, row } = await loadRow(user.id, params.id);
   if (!row) notFound();
@@ -18,13 +18,14 @@ export default async function CasePage({ params, searchParams }: { params: { id:
   const deadlinePassed = letter ? new Date(letter.deadline + "T23:59:59") < new Date() : false;
   const reviewRequested = db.reviewRequests?.some((r) => r.invoiceId === invoice.id);
   const consumerNeedsReview = customer.kind === "consumer";
+  const reminders = (db.reminders ?? []).filter((r) => r.invoiceId === invoice.id && (!letter || r.id.startsWith(letter.id)));
 
   return (
     <>
       <p className="note"><a href="/">← Receivables</a></p>
       <h1>{invoice.number} · {customer.name}</h1>
       <p className="sub">{money(invoice.amountDue)} · {row.days} days past due · {customer.kind} customer</p>
-      {searchParams.sent && <div className="banner good">Demand letter sent by email. Deadline to pay: {letter && fmt(letter.deadline)}.</div>}
+      {searchParams.sent && <div className="banner good">Demand letter sent{letter?.emailedTo ? ` by email to ${letter.emailedTo}` : ""}. Deadline to pay: {letter && fmt(letter.deadline)}.{db.mailbox?.addReminders ? " Follow-up reminders added to your calendar." : ""}</div>}
       {searchParams.limit && <div className="banner warn">{searchParams.limit} <a href="/billing">See plans</a></div>}
       {searchParams.review && <div className="banner good">Sent to the firm for review. A lawyer will contact you within one business day.</div>}
       {row.paid && <div className="banner good">Marked paid. The workflow has stopped.</div>}
@@ -39,6 +40,11 @@ export default async function CasePage({ params, searchParams }: { params: { id:
             <p>Sent {fmt(letter.sentAt)} by {letter.channel} ({letter.mode === "auto" ? "auto-sent" : "sent by you"}). Pay-by deadline {fmt(letter.deadline)}{deadlinePassed ? ", now passed." : "."}</p>
           ) : (
             <p>Not sent yet. {consumerNeedsReview ? "This is a consumer debt, so it is never auto-sent: review it before sending." : "Review the letter, then send."}</p>
+          )}
+          {letter?.emailedTo && <p className="note">Emailed to {letter.emailedTo} from your {letter.emailedVia === "google" ? "Gmail" : letter.emailedVia === "microsoft" ? "Outlook" : "connected (demo)"} mailbox.</p>}
+          {letter?.deliveryError && <div className="banner bad">Delivery problem: {letter.deliveryError}</div>}
+          {letter && reminders.length > 0 && (
+            <p className="note">Follow-ups: {reminders.map((r) => `${fmt(r.date)} ${r.title.split(":")[0].split(" (")[0]}`).join(" · ")}. {reminders.some((r) => r.eventId) ? "Added to your calendar." : ""} <a href={`/api/reminders/${invoice.id}`}>Download .ics</a></p>
           )}
           <div className="row">
             <a className="btn ghost" href={`/api/letters/${invoice.id}`} target="_blank">Open PDF</a>
@@ -69,8 +75,12 @@ export default async function CasePage({ params, searchParams }: { params: { id:
         </div>
       </div>
 
-      <StepGuide row={row} j={j} firstDone={!!letter && deadlinePassed} />
+      {Object.values(db.progress?.[invoice.id]?.docs ?? []).some((d) => d.status === "issues") && (
+        <div className="banner bad">A document you uploaded has problems. See the red box in the checklist below.</div>
+      )}
+      <CaseChecklist row={row} j={j} progress={db.progress?.[invoice.id]} autoDone={letter && deadlinePassed ? ["demand"] : []} />
       {forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
+      <ServiceOptions forum={forum} served={searchParams.served} action={`/cases/${params.id}#service`} />
     </>
   );
 }

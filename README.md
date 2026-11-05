@@ -21,7 +21,12 @@ The prototype uses a sample ledger (`lib/accounting/sample.ts`) and a JSON file 
 - **Payments:** Stripe Checkout handles both subscriptions and the $75 one-off, prices in CAD. The Stripe customer portal handles plan changes, card updates, invoices and cancellation. A webhook keeps plans in sync, and Stripe Tax is optional. With no Stripe keys, the app runs in demo mode.
 - **Receivables dashboard** (`/`): aging buckets, the queue of invoices over 90 days, the forum each would go to, and a limitation countdown. "Run nightly sync" runs the auto-send rule.
 - **Company & letterhead** (`/settings`): upload a letterhead, enter the company details and set the sending rules. Auto-send goes to business customers only.
-- **Case page** (`/cases/:id`): preview the letter on your letterhead or as a firm letter, send it, mark the debt paid, request a lawyer review, and follow the BC step-by-step guide. Small Claims cases also get the Notice of Claim data.
+- **Landing page** (`/` when signed out) and **About us** (`/about`). Logo files are in `public/brand/`.
+- **Case page** (`/cases/:id`): preview the letter on your letterhead or as a firm letter, send it, mark the debt paid, request a lawyer review, and work through a tick-box checklist. Steps that need outside proof (delivery, filed claim, certificate of service, the Reply) take an upload. Small Claims cases also get the Notice of Claim data and a "Serving the Notice of Claim" section: fixed-fee process server prices (sample prices in `bc.ts`), how to serve it yourself, proof of service, and the Reply and default-order dates worked out from the service date.
+- **Document checks** (`lib/doccheck.ts`): each upload is read by Claude (`claude-opus-5-5`) and tested against that step's requirements and the matter's facts (names, amounts, dates). Problems show in a red box on the step and a red banner on the case. Needs `ANTHROPIC_API_KEY`; without it, files are saved and marked "unchecked".
+- **Email and calendar** (`/settings#mailbox`): one-click connect for Outlook / Microsoft 365 (Graph) or Gmail / Google Workspace. Sent letters go out from the customer's own mailbox with the PDF attached, and follow-up reminders (payment deadline, next step, filing check, 60-day limitation warning) are added to their calendar. Every matter also has an .ics download. Needs `MS_CLIENT_ID`/`MS_CLIENT_SECRET` and/or `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`; without them, connecting simulates a mailbox.
+- **Calendar** (`/calendar`): month view and agenda of every deadline, follow-up, limitation date and lien deadline, with overdue, upcoming and collected filters, and an .ics of everything.
+- **Builders lien add-on** (`/liens`): for contractors, subtrades, workers and suppliers. Collects the critical dates, calculates the 45-day filing deadline (s. 20), the one-year action deadline and the 21-day notice deadline (s. 33), fills the Form 5 data, and runs a checklist with checked uploads (title search, signed Form 5, registration). The per-lien price ($149) is a placeholder.
 
 ## Put it online (Render)
 
@@ -62,4 +67,7 @@ Prices are defined in `lib/plans.ts` and `lib/oneoff.ts` and sent to Stripe inli
 - Replace the letter wording with firm-authored text. CLEBC precedents are for internal firm use only.
 - Have a lawyer confirm every step marked `verify` in `bc.ts` against the current Small Claims Rules and CRT rules.
 - Get a Law Society practice advisor's view on court-document generation (Legal Profession Act s. 15).
+- Have a lawyer confirm the builders lien steps and deadlines in `lib/liens.ts` (from LSBC checklist E-6), including statutory holidays and strata rules.
+- Agree process-server rates with a partner and replace the sample prices in `bc.ts`. Set the lien add-on price and wire it to Stripe.
+- Encrypt stored mailbox tokens at rest, and get Microsoft and Google app verification for the mail and calendar scopes.
 - Phase 2: unified accounting API and Postgres. Phase 3: real email and registered-mail delivery. Phase 4: fill the official Notice of Claim and CRT forms.

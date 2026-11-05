@@ -11,6 +11,25 @@ export interface Forum {
   selfServe: boolean;
   summary: string;
   steps: EnforcementStep[];
+  /** How to serve the starting document: hire a server at a fixed fee, or serve it yourself. */
+  service?: ServiceGuide;
+}
+
+export interface ServiceFee {
+  area: string;
+  price: number | null; // null = quoted
+  note?: string;
+}
+
+export interface ServiceGuide {
+  document: string;
+  /** Fixed-fee process service. placeholder = prices not yet confirmed with a service provider. */
+  serverFees: { fees: ServiceFee[]; includes: string; placeholder: boolean };
+  selfServe: { title: string; detail: string; verify?: boolean }[];
+  proof: { document: string; detail: string; verify?: boolean };
+  /** Deadlines counted from the date of service. */
+  afterService: { label: string; days: number; outsideProvinceDays?: number }[];
+  officialGuides: { label: string; url: string }[];
 }
 
 export interface EnforcementStep {
@@ -21,6 +40,15 @@ export interface EnforcementStep {
   document?: string;
   /** Statements we have not yet confirmed against current rules. Shown to users as "confirm". */
   verify?: boolean;
+  /** Steps that depend on something outside the app ask the client to upload proof, which is then checked. */
+  upload?: StepUpload;
+}
+
+export interface StepUpload {
+  label: string;
+  /** What a compliant document must show. The document check tests each one. */
+  requirements: string[];
+  optional?: boolean;
 }
 
 export interface Jurisdiction {

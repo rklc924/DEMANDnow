@@ -1,5 +1,6 @@
 import { BUCKETS, money } from "@/lib/aging";
-import { requireUser } from "@/lib/auth";
+import { getUser, requireUser } from "@/lib/auth";
+import { Landing } from "./landing";
 import { loadRows, type Row } from "@/lib/ledger";
 import { usage } from "@/lib/usage";
 
@@ -17,6 +18,7 @@ function status(r: Row) {
 }
 
 export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string } }) {
+  if (!(await getUser())) return <Landing />;
   const user = await requireUser();
   const { db, rows } = await loadRows(user.id);
   const u = usage(db);

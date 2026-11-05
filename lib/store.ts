@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import type { Customer, Invoice } from "./accounting/types";
+import type { Lien } from "./liens";
 import type { Interval, PlanId } from "./plans";
 
 // Minimal JSON file store for the prototype, one file per account. Swap for Postgres (Prisma)
@@ -30,6 +31,52 @@ export interface LetterRecord {
   channel: "email" | "mail";
   mode: "manual" | "auto";
   deadline: string;
+  /** Set when the letter was emailed from the customer's own connected mailbox. */
+  emailedVia?: MailProvider | "demo";
+  emailedTo?: string;
+  deliveryError?: string;
+}
+
+export interface DocCheck {
+  id: string;
+  stepId: string;
+  name: string;
+  file: string;
+  mime: string;
+  uploadedAt: string;
+  /** pass = every requirement met; issues = at least one not met or unclear; unchecked = automatic check unavailable. */
+  status: "pass" | "issues" | "unchecked";
+  summary: string;
+  checks: { requirement: string; result: "met" | "not_met" | "unclear"; note: string }[];
+}
+
+export interface CaseProgress {
+  done: string[]; // step ids
+  docs: DocCheck[];
+}
+
+export type MailProvider = "microsoft" | "google";
+
+/** The customer's own mailbox and calendar, connected by OAuth. Tokens must be encrypted at rest before launch. */
+export interface Mailbox {
+  provider: MailProvider;
+  address: string;
+  connectedAt: string;
+  demo?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number; // epoch ms
+  sendEmail: boolean;
+  addReminders: boolean;
+}
+
+export interface Reminder {
+  id: string;
+  invoiceId: string;
+  date: string; // YYYY-MM-DD, all-day
+  title: string;
+  detail: string;
+  eventId?: string; // id in the connected calendar
 }
 
 export interface Subscription {
@@ -49,6 +96,15 @@ export interface DB {
   letters: LetterRecord[];
   paidInvoiceIds: string[];
   reviewRequests?: { invoiceId: string; requestedAt: string }[];
+  mailbox?: Mailbox;
+  reminders?: Reminder[];
+  /** Paid add-ons. */
+  addons?: { liens?: { since: string } };
+  liens?: Lien[];
+  /** Per matter (invoice id or lien id): ticked steps and documents uploaded for steps that need outside proof. */
+  progress?: Record<string, CaseProgress>;
+  /** Demo mode only: what would have been emailed. */
+  outbox?: { to: string; subject: string; at: string }[];
   /** Matters entered by hand (or imported from a one-off), alongside the accounting sync. */
   manual?: { customers: Customer[]; invoices: Invoice[] };
 }

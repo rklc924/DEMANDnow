@@ -14,13 +14,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         <header className="top">
           <div className="wrap">
-            <a className="brand" href="/" style={{ color: "inherit" }}>Demand Now</a>
+            <a className="brand" href="/"><img src="/brand/demand-now-logo.svg" alt="Demand Now" height={30} /></a>
             {user ? (
               <>
                 <nav>
                   <a href="/">Receivables</a>
-                  <a href="/settings">Company &amp; letterhead</a>
-                  <a href="/billing">Plan &amp; billing</a>
+                  <a href="/calendar">Calendar</a>
+                  <a href="/liens">Liens</a>
+                  <a href="/settings">Settings</a>
+                  <a href="/billing">Billing</a>
                 </nav>
                 <div className="row" style={{ marginLeft: "auto", fontSize: 13 }}>
                   {u?.plan ? (
@@ -28,12 +30,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   ) : (
                     <a className="pill warn" href="/billing">No plan</a>
                   )}
-                  <span className="note">{user.email}</span>
+                  <span className="note email">{user.email}</span>
                   <form action="/api/auth/logout" method="post"><button className="btn small ghost">Log out</button></form>
                 </div>
               </>
             ) : (
               <nav style={{ marginLeft: "auto" }}>
+                <a href="/about">About us</a>
                 <a href="/start">One-off demand</a>
                 <a href="/pricing">Pricing</a>
                 <a href="/login">Log in</a>
@@ -43,6 +46,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           </div>
         </header>
         <main className="wrap">{children}</main>
+        <footer className="foot">
+          <div className="wrap">
+            <img src="/brand/demand-now-icon.svg" alt="" width={20} height={20} />
+            <span>© {new Date().getFullYear()} Demand Now</span>
+            <a href="/about">About us</a>
+            <a href="/pricing">Pricing</a>
+          </div>
+        </footer>
       </body>
     </html>
   );
