@@ -1,3 +1,4 @@
+import { publicOrigin } from "@/lib/origin";
 import { go } from "@/lib/http";
 import { markDraftPaid, ONE_OFF_PRICE, readDraft } from "@/lib/oneoff";
 import { billingLive, stripe } from "@/lib/stripe";
@@ -13,7 +14,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return go(req, `/start/${d.id}?paid=1`);
   }
 
-  const base = process.env.APP_URL ?? new URL(req.url).origin;
+  const base = publicOrigin(req);
   const session = await stripe()!.checkout.sessions.create({
     mode: "payment",
     line_items: [

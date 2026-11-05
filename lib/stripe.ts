@@ -1,3 +1,4 @@
+import { publicOrigin } from "./origin";
 import Stripe from "stripe";
 import { PLANS, type Interval, type PlanId } from "./plans";
 import { readDB, writeDB, type Subscription } from "./store";
@@ -19,7 +20,7 @@ export function stripe(): Stripe | null {
 
 export const billingLive = () => stripe() !== null;
 
-const appUrl = (req: Request) => process.env.APP_URL ?? new URL(req.url).origin;
+const appUrl = (req: Request) => publicOrigin(req);
 
 async function ensureCustomer(account: { id: string; email: string; company: string }) {
   const s = stripe()!;

@@ -1,3 +1,4 @@
+import { publicOrigin } from "./origin";
 // Transactional email and SMS.
 // Email: Resend (RESEND_API_KEY, EMAIL_FROM). SMS: Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM).
 // Without keys, messages are written to the server log so flows can be tested locally.
@@ -46,4 +47,4 @@ export async function sendSms(to: string, body: string) {
   return { dev: false };
 }
 
-export const appUrl = (req?: Request) => process.env.APP_URL ?? (req ? new URL(req.url).origin : "http://localhost:3000");
+export const appUrl = (req?: Request) => publicOrigin(req);
