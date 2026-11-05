@@ -52,6 +52,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <span>© {new Date().getFullYear()} Demand Now</span>
             <a href="/about">About us</a>
             <a href="/pricing">Pricing</a>
+            <a href="/support">Support</a>
+            <a href="/terms">Terms</a>
+            <a href="/privacy">Privacy</a>
           </div>
         </footer>
       </body>

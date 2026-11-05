@@ -255,3 +255,13 @@ ol.steps-plain { padding-left: 20px; margin: 6px 0 0; }
 ol.steps-plain li { margin: 0 0 8px; line-height: 1.45; }
 details > summary { cursor: pointer; padding: 6px 0; }
 .subcard { background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+
+/* Privacy, terms and support pages */
+.legal h1 { font-size: 28px; margin: 16px 0 4px; }
+.legal .card p, .legal .card li { line-height: 1.6; }
+.legal ul { padding-left: 20px; }
+.legal li { margin-bottom: 6px; }
+.faq { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.faq:last-child { border-bottom: 0; }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq p { margin: 8px 0 0; }

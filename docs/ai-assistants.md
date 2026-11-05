@@ -35,7 +35,7 @@ The tool replies never mention prices or push upgrades, because ChatGPT's direct
 ## Before going live
 
 1. Set `APP_URL` to the public https address (for example `https://app.demandnow.ca`). The connector URL and OAuth metadata are built from it.
-2. Publish a privacy policy, terms of service and a support page or email. Both directories require all three.
+2. Use `<APP_URL>/privacy`, `<APP_URL>/terms` and `<APP_URL>/support` for the policy, terms and support URLs that both directories ask for. Set `LEGAL_ENTITY_NAME` and `SUPPORT_EMAIL` on Render first.
 3. Create a reviewer test account with an active plan and a few sample matters. Sign-in must work with only an email and password, with no codes or magic links.
 
 ## Listing in the Claude Connectors Directory (Anthropic)
