@@ -1,0 +1,143 @@
+{
+  "chapters": [
+    {
+      "slug": "getting-started",
+      "group": "Start here",
+      "title": "Getting started",
+      "summary": "Create your account, add a card, choose a plan and set up your letterhead.",
+      "routes": [
+        "/signup",
+        "/login",
+        "/forgot",
+        "/reset",
+        "/billing/card"
+      ]
+    },
+    {
+      "slug": "receivables",
+      "group": "Everyday use",
+      "title": "Receivables dashboard",
+      "summary": "See what's overdue, which invoices are ready for a demand, and add invoices by hand.",
+      "routes": [
+        "/",
+        "/invoices/new"
+      ]
+    },
+    {
+      "slug": "demand-letters",
+      "group": "Everyday use",
+      "title": "Demand letters",
+      "summary": "Confirm who owes you, review the letter, send it and track the deadline.",
+      "routes": [
+        "/cases/[id]"
+      ]
+    },
+    {
+      "slug": "enforcement",
+      "group": "Everyday use",
+      "title": "If the debt stays unpaid",
+      "summary": "Where your claim goes in BC, the step-by-step checklist and document checks.",
+      "routes": [
+        "/cases/[id]"
+      ]
+    },
+    {
+      "slug": "serving-documents",
+      "group": "Everyday use",
+      "title": "Serving the Notice of Claim",
+      "summary": "Book a process server or serve it yourself, then file the Certificate of Service.",
+      "routes": [
+        "/cases/[id]"
+      ]
+    },
+    {
+      "slug": "calendar",
+      "group": "Everyday use",
+      "title": "Calendar and reminders",
+      "summary": "Every deadline in one place, and follow-ups in your own calendar.",
+      "routes": [
+        "/calendar"
+      ]
+    },
+    {
+      "slug": "builders-liens",
+      "group": "Add-ons",
+      "title": "Builders liens",
+      "summary": "Work out your lien deadlines, prepare Form 5 and have it filed for you.",
+      "routes": [
+        "/liens",
+        "/liens/[id]"
+      ]
+    },
+    {
+      "slug": "one-off-demand",
+      "group": "Add-ons",
+      "title": "One-off demand",
+      "summary": "Send a single demand letter without a subscription.",
+      "routes": [
+        "/start",
+        "/start/[id]"
+      ]
+    },
+    {
+      "slug": "settings",
+      "group": "Your account",
+      "title": "Company settings",
+      "summary": "Letterhead, company details, sending rules and your email connection.",
+      "routes": [
+        "/settings"
+      ]
+    },
+    {
+      "slug": "ai-assistants",
+      "group": "Your account",
+      "title": "Claude and ChatGPT",
+      "summary": "Connect an AI assistant to start demands from a chat.",
+      "routes": [
+        "/oauth/authorize"
+      ]
+    },
+    {
+      "slug": "billing",
+      "group": "Your account",
+      "title": "Plans and billing",
+      "summary": "Plans, monthly letter limits, your card on file and receipts.",
+      "routes": [
+        "/billing",
+        "/pricing"
+      ]
+    },
+    {
+      "slug": "team",
+      "group": "Your account",
+      "title": "Your team and user roles",
+      "summary": "Invite colleagues as Admins or regular users and choose what each can do.",
+      "routes": [
+        "/team"
+      ]
+    },
+    {
+      "slug": "faq",
+      "group": "Help",
+      "title": "Questions and troubleshooting",
+      "summary": "Answers to common questions and fixes for common problems.",
+      "routes": []
+    },
+    {
+      "slug": "whats-new",
+      "group": "Help",
+      "title": "What's new",
+      "summary": "New features and changes, newest first.",
+      "routes": []
+    }
+  ],
+  "notCovered": {
+    "/about": "Marketing page",
+    "/terms": "Legal page",
+    "/privacy": "Legal page",
+    "/support": "Support form, linked from the manual",
+    "/help": "The manual itself",
+    "/help/[slug]": "The manual itself",
+    "/serve/[token]": "Page for the process server, not for customers"
+  }
+}

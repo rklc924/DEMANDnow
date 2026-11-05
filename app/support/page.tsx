@@ -24,6 +24,7 @@ export default async function Support({ searchParams }: { searchParams: { sent?:
         We usually reply within one business day (Pacific time).
         {email && <> Email <a href={`mailto:${email}`}>{email}</a> or use the form below.</>}
       </p>
+      <p>Most questions are answered in the <a href="/help">user manual</a>, including <a href="/help/faq">common questions and troubleshooting</a>.</p>
       {searchParams.sent && <div className="banner good">Thanks, we've got your message and will reply by email.</div>}
       {searchParams.error && <div className="banner warn">{searchParams.error}</div>}
 

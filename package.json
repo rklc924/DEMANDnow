@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "import:files": "node scripts/import-files.mjs"
+    "import:files": "node scripts/import-files.mjs",
+    "check:manual": "node scripts/check-manual.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

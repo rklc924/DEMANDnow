@@ -266,6 +266,37 @@ details > summary { cursor: pointer; padding: 6px 0; }
 .faq summary { cursor: pointer; font-weight: 600; }
 .faq p { margin: 8px 0 0; }
 
+/* User manual (/help) */
+.manual { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+.manual-nav { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.manual-nav a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--ink); }
+.manual-nav a:hover { background: var(--accent-soft); }
+.manual-nav a.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.manual-nav .pill { margin-left: 6px; }
+.manual-home { font-weight: 700; }
+.manual-group { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 14px 10px 4px; }
+.manual-body { max-width: 760px; }
+.manual-body section h2 { margin-top: 24px; }
+.manual-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.manual-card { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 14px 16px; color: var(--ink); }
+.manual-card:hover { border-color: var(--accent); }
+.manual-toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 14px; }
+.manual-toc ul { margin: 6px 0 0; padding-left: 18px; }
+.manual-text { line-height: 1.65; }
+.manual-text h2 { margin-top: 32px; }
+.manual-text h3 { margin: 22px 0 6px; font-size: 16px; }
+.manual-text li { margin-bottom: 4px; }
+.manual-text table { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin: 12px 0 18px; font-size: 14px; }
+.manual-text code { background: #F1EDE4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.callout { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 16px; margin: 16px 0; }
+.callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+.manual-pager { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 32px; padding-top: 16px; font-weight: 600; }
+@media (max-width: 760px) {
+  .manual { grid-template-columns: 1fr; gap: 12px; }
+  .manual-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .manual-nav > div { display: contents; }
+  .manual-nav .manual-group { display: none; }
+}
 /* Team page */
 .team-list { display: grid; gap: 12px; }
 .team-row { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
