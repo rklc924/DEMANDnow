@@ -1,0 +1,50 @@
+import { sampleProvider } from "./accounting/sample";
+import type { Customer, Invoice } from "./accounting/types";
+import { bucketFor, daysOverdue, type Bucket } from "./aging";
+import { getJurisdiction, limitationDate, routeForum } from "./jurisdictions";
+import type { Forum } from "./jurisdictions/types";
+import { readDB, type DB, type LetterRecord } from "./store";
+
+export interface Row {
+  invoice: Invoice;
+  customer: Customer;
+  days: number;
+  bucket: Bucket;
+  letter?: LetterRecord;
+  forum: Forum;
+  limitation: string; // YYYY-MM-DD
+  daysToLimitation: number;
+  paid: boolean;
+}
+
+const provider = sampleProvider; // phase 2: the unified accounting API connector
+
+export async function loadRows(db?: DB): Promise<{ db: DB; rows: Row[] }> {
+  db ??= await readDB();
+  const j = getJurisdiction(db.company.jurisdiction);
+  const [customers, invoices] = await Promise.all([provider.fetchCustomers(), provider.fetchOpenInvoices()]);
+  const byId = new Map(customers.map((c) => [c.id, c]));
+  const today = new Date();
+  const rows = invoices.map((invoice) => {
+    const days = daysOverdue(invoice.dueDate, today);
+    const lim = limitationDate(j, invoice.dueDate);
+    return {
+      invoice,
+      customer: byId.get(invoice.customerId)!,
+      days,
+      bucket: bucketFor(days),
+      letter: db!.letters.findLast((l) => l.invoiceId === invoice.id),
+      forum: routeForum(j, invoice.amountDue),
+      limitation: lim.toISOString().slice(0, 10),
+      daysToLimitation: Math.ceil((lim.getTime() - today.getTime()) / 86_400_000),
+      paid: db!.paidInvoiceIds.includes(invoice.id),
+    };
+  });
+  rows.sort((a, b) => b.days - a.days);
+  return { db, rows };
+}
+
+export async function loadRow(invoiceId: string) {
+  const { db, rows } = await loadRows();
+  return { db, row: rows.find((r) => r.invoice.id === invoiceId) };
+}
