@@ -1,7 +1,8 @@
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { PLANS, priceLabel, type Interval, type PlanId } from "@/lib/plans";
 import { readDB } from "@/lib/store";
 import { billingLive } from "@/lib/stripe";
+import { receiptNumber } from "@/lib/receipt";
 import { usage } from "@/lib/usage";
 import { IntervalToggle, PlanCards } from "../plan-cards";
 
@@ -10,8 +11,8 @@ export const dynamic = "force-dynamic";
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
 
 export default async function Billing({ searchParams }: { searchParams: { interval?: string; plan?: string; activated?: string; canceled?: string; card?: string } }) {
-  const user = await requireUser();
-  const db = await readDB(user.id);
+  const user = await requireUser({ admin: true });
+  const db = await readDB(acct(user));
   const u = usage(db);
   const interval: Interval = searchParams.interval === "annual" ? "annual" : searchParams.interval === "monthly" ? "monthly" : (u.sub?.interval ?? "monthly");
   const pct = u.limit ? Math.min(100, Math.round((u.used / u.limit) * 100)) : 0;
@@ -28,12 +29,32 @@ export default async function Billing({ searchParams }: { searchParams: { interv
           <a className="btn small ghost" href="/billing/card">Update card</a>
         </div>
       )}
-      {(db.charges ?? []).length > 0 && (
-        <div className="card">
-          <h2>One-time charges</h2>
-          <table className="agenda"><tbody>{db.charges!.slice().reverse().map((c) => <tr key={c.id}><td className="when">{new Date(c.at).toLocaleDateString("en-CA")}</td><td>{c.description}</td><td style={{ textAlign: "right" }}>${c.amount.toFixed(2)}</td></tr>)}</tbody></table>
-        </div>
-      )}
+      <div className="card" id="receipts">
+        <h2>Invoices and receipts</h2>
+        {(db.charges ?? []).length === 0 ? (
+          <p className="note">Nothing charged yet. Every plan payment and service you pay for will be listed here with a paid receipt to download.</p>
+        ) : (
+          <table>
+            <thead><tr><th>Date</th><th>Receipt</th><th>Description</th><th className="num">Amount</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {db.charges!.slice().reverse().map((c) => (
+                <tr key={c.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>{new Date(c.at).toLocaleDateString("en-CA")}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>{receiptNumber(c)}</td>
+                  <td>{c.description}</td>
+                  <td className="num">${c.amount.toFixed(2)}</td>
+                  <td><span className="pill good">Paid</span>{c.demo && <span className="pill grey">demo</span>}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <a className="btn small ghost" href={`/api/billing/receipt/${c.id}`} target="_blank">Receipt PDF</a>
+                    {c.invoiceUrl && <> <a className="btn small ghost" href={c.invoiceUrl} target="_blank" rel="noreferrer">Stripe invoice</a></>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="note">Land Title Office and registry fees charged at cost appear here as separate lines.</p>
+      </div>
       {searchParams.activated && <div className="banner good">Your plan is active. You can send demand letters now.</div>}
       {searchParams.canceled && <div className="banner warn">Your plan is canceled. Existing cases stay available; sending is paused.</div>}
 

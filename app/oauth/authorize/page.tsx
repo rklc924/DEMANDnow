@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/auth";
+import { getUser, acct } from "@/lib/auth";
 import { checkAuthorizeRequest, OAuthError } from "@/lib/oauth";
 import { readDB } from "@/lib/store";
 import { usage } from "@/lib/usage";
@@ -33,7 +33,7 @@ export default async function Authorize({ searchParams }: { searchParams: Record
 
   const user = await getUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/oauth/authorize?${qs}`)}`);
-  const db = await readDB(user.id);
+  const db = await readDB(acct(user));
   const u = usage(db);
   const host = new URL(req.redirectUri).host;
 

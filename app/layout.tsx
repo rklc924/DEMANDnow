@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
-import { getUser } from "@/lib/auth";
+import { getUser, acct, isAdmin } from "@/lib/auth";
 import { readDB } from "@/lib/store";
 import { usage } from "@/lib/usage";
 
@@ -8,7 +8,9 @@ export const metadata = { title: "Demand Now", description: "Overdue invoice dem
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await getUser();
-  const u = user ? usage(await readDB(user.id)) : null;
+  const accountDb = user ? await readDB(acct(user)) : null;
+  const u = accountDb ? usage(accountDb) : null;
+  const admin = user ? isAdmin(user) : false;
   return (
     <html lang="en">
       <body>
@@ -21,16 +23,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <a href="/">Receivables</a>
                   <a href="/calendar">Calendar</a>
                   <a href="/liens">Liens</a>
-                  <a href="/settings">Settings</a>
-                  <a href="/billing">Billing</a>
+                  {admin && <a href="/team">Team</a>}
+                  {admin && <a href="/settings">Settings</a>}
+                  {admin && <a href="/billing">Billing</a>}
                 </nav>
                 <div className="row" style={{ marginLeft: "auto", fontSize: 13 }}>
                   {u?.plan ? (
                     <span className="pill blue">{u.plan.name} · {u.limit === null ? `${u.used} letters this month` : `${u.used}/${u.limit} letters this month`}</span>
                   ) : (
-                    <a className="pill warn" href="/billing">No plan</a>
+                    admin ? <a className="pill warn" href="/billing">No plan</a> : <span className="pill warn">No plan</span>
                   )}
-                  <span className="note email">{user.email}</span>
+                  <span className="note email" title={`${user.name || user.email} (${user.email})`}><b>{accountDb?.company.name}</b> · {admin ? "Admin" : "Regular user"}</span>
                   <form action="/api/auth/logout" method="post"><button className="btn small ghost">Log out</button></form>
                 </div>
               </>

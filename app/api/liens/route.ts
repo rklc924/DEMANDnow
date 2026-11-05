@@ -1,3 +1,4 @@
+import { acct } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { go, withUser } from "@/lib/http";
 import type { Lien, LienRole } from "@/lib/liens";
@@ -9,7 +10,7 @@ const text = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim()
 export const POST = (req: Request) =>
   withUser(req, async (user) => {
     const f = await req.formData();
-    const db = await readDB(user.id);
+    const db = await readDB(acct(user));
     if (!db.addons?.liens) return go(req, "/liens");
     const lastWorkDate = date(f.get("lastWorkDate"));
     const amount = Number(text(f.get("amount")).replace(/[$,]/g, ""));
@@ -34,6 +35,6 @@ export const POST = (req: Request) =>
       strata: f.get("strata") === "on",
     };
     (db.liens ??= []).push(lien);
-    await writeDB(user.id, db);
+    await writeDB(acct(user), db);
     return go(req, `/liens/${lien.id}`);
   });

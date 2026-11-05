@@ -1,10 +1,11 @@
+import { acct, can } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { go, withUser } from "@/lib/http";
 import { loadRow } from "@/lib/ledger";
 import { renderLetterPdf } from "@/lib/letters/pdf";
 import { buildDemandLetter, type LetterVariant } from "@/lib/letters/template";
 import { sendLetter } from "@/lib/send";
-import { readUpload } from "@/lib/store";
+import { readUpload, readDB, writeDB, logActivity } from "@/lib/store";
 import { PlanError } from "@/lib/usage";
 
 type Ctx = { params: { id: string } };
@@ -12,7 +13,7 @@ type Ctx = { params: { id: string } };
 // GET: preview the letter PDF on the letterhead (?variant=firm for the lawyer letter). POST: send it.
 export const GET = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
-    const { db, row } = await loadRow(user.id, params.id);
+    const { db, row } = await loadRow(acct(user), params.id);
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const sentOn = row.letter ? new Date(row.letter.sentAt) : new Date();
     const variant: LetterVariant = new URL(req.url).searchParams.get("variant") === "firm" ? "firm" : "company";
@@ -26,11 +27,15 @@ export const GET = (req: Request, { params }: Ctx) =>
 
 export const POST = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
+    if (!can(user, "sendLetters")) return go(req, `/cases/${params.id}?noPermission=1`);
     if (!user.emailVerifiedAt) {
       return go(req, `/cases/${params.id}?limit=${encodeURIComponent("Confirm your email address before sending letters. Check your inbox, or resend the link from Receivables.")}`);
     }
     try {
-      await sendLetter(user.id, params.id);
+      await sendLetter(acct(user), params.id);
+      const db = await readDB(acct(user));
+      logActivity(db, user, `Sent the demand letter`, `/cases/${params.id}`);
+      await writeDB(acct(user), db);
     } catch (e) {
       if (e instanceof PlanError) return go(req, `/cases/${params.id}?limit=${encodeURIComponent(e.message)}`);
       throw e;

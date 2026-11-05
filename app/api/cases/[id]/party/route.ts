@@ -1,10 +1,11 @@
+import { acct, can } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { appUrl, sendEmail } from "@/lib/email";
 import { go, withUser } from "@/lib/http";
 import { loadRow } from "@/lib/ledger";
 import { COMPANY_SEARCH_FEE, lines, readCompanySearch, type Party, type PartyType } from "@/lib/party";
-import { saveUpload, writeDB } from "@/lib/store";
+import { saveUpload, writeDB, logActivity, readDB } from "@/lib/store";
 import { chargeCard } from "@/lib/stripe";
 
 const TYPES: PartyType[] = ["company", "individual", "sole-prop"];
@@ -16,7 +17,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
     const back = (q: string) => go(req, `/cases/${params.id}?${q}#party`);
     const f = await req.formData();
-    const { db, row } = await loadRow(user.id, params.id);
+    const { db, row } = await loadRow(acct(user), params.id);
     if (!row) return go(req, "/");
     const cid = row.customer.id;
     const parties = (db.parties ??= {});
@@ -25,17 +26,19 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const action = str(f.get("action"));
 
     if (action === "order") {
+      if (!can(user, "orderServices")) return back("partyError=" + encodeURIComponent("Your admin hasn't given you access to order paid services."));
       if (p.searchOrder) return back("party=ordered");
       const name = str(f.get("searchName")) || p.legalName || row.customer.name;
       try {
-        const charge = await chargeCard(user.id, COMPANY_SEARCH_FEE, `Company search: ${name}`, { invoiceId: row.invoice.id });
+        const charge = await chargeCard(acct(user), COMPANY_SEARCH_FEE, `Company search: ${name}`, { invoiceId: row.invoice.id });
         p.searchOrder = { orderedAt: new Date().toISOString(), fee: COMPANY_SEARCH_FEE, chargeId: charge.id };
         (db.charges ??= []).push({ id: randomBytes(4).toString("hex"), at: new Date().toISOString(), amount: COMPANY_SEARCH_FEE, description: `Company search: ${name}`, stripeId: charge.id, demo: charge.demo });
       } catch (e) {
         return back("partyError=" + encodeURIComponent((e as Error).message));
       }
+      logActivity(db, user, `Ordered a company search for ${name}`, `/cases/${row.invoice.id}#party`);
       p.type = "company";
-      await writeDB(user.id, db);
+      await writeDB(acct(user), db);
       await sendEmail({
         to: process.env.SERVICE_OPS_EMAIL ?? "ops@demandnow.local",
         replyTo: db.company.email || user.email,
@@ -54,12 +57,12 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       const file = f.get("file");
       if (!(file instanceof File) || file.size === 0) return back("partyError=" + encodeURIComponent("Choose the company search file."));
       const bytes = new Uint8Array(await file.arrayBuffer());
-      p.searchFile = await saveUpload(user.id, `party-${cid}-search-${randomBytes(4).toString("hex")}.${EXT[file.type] ?? "bin"}`, bytes);
+      p.searchFile = await saveUpload(acct(user), `party-${cid}-search-${randomBytes(4).toString("hex")}.${EXT[file.type] ?? "bin"}`, bytes);
       p.type = "company";
       try {
         const r = await readCompanySearch(bytes, file.type);
         if (!r) {
-          await writeDB(user.id, db);
+          await writeDB(acct(user), db);
           return back("party=manual");
         }
         Object.assign(p, {
@@ -74,10 +77,10 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
           confirmedAt: undefined, // the client reviews and confirms
         });
       } catch (e) {
-        await writeDB(user.id, db);
+        await writeDB(acct(user), db);
         return back("partyError=" + encodeURIComponent((e as Error).message));
       }
-      await writeDB(user.id, db);
+      await writeDB(acct(user), db);
       return back("party=read");
     }
 
@@ -104,6 +107,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     });
     if (type === "company" && !p.registeredOffice?.length) return back("partyError=" + encodeURIComponent("Add the registered office address from the company search."));
     if (type !== "company" && !p.homeAddress?.length) return back("partyError=" + encodeURIComponent("Add the address where the person lives now."));
-    await writeDB(user.id, db);
+    logActivity(db, user, `Confirmed legal name: ${p.legalName}`, `/cases/${row.invoice.id}#party`);
+    await writeDB(acct(user), db);
     return back("party=saved");
   });

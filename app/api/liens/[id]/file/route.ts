@@ -1,19 +1,21 @@
+import { acct, can } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { appUrl, sendEmail } from "@/lib/email";
 import { go, withUser } from "@/lib/http";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_TITLE_SEARCH_FEE, filingQuote, lienDates } from "@/lib/liens";
-import { readDB, readUpload, writeDB } from "@/lib/store";
+import { readDB, readUpload, writeDB, logActivity } from "@/lib/store";
 import { chargeCard } from "@/lib/stripe";
 
 // "Have us file it": we file the signed Claim of Lien by hand at the Land Title Office.
 // Charges $250 (+$100 rush) now; LTSA filing fees are charged at cost once filed.
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
+    if (!can(user, "orderServices")) return go(req, `/liens/${params.id}?noPermission=1`);
     const back = (q: string) => go(req, `/liens/${params.id}?${q}#filing`);
     const err = (m: string) => back("fileError=" + encodeURIComponent(m));
     const f = await req.formData();
-    const db = await readDB(user.id);
+    const db = await readDB(acct(user));
     const lien = db.liens?.find((l) => l.id === params.id);
     if (!lien) return go(req, "/liens");
     const where = lien.civicAddress || `PID ${lien.pid}`;
@@ -22,13 +24,13 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     if (f.get("action") === "title") {
       if (lien.titleSearchOrder) return back("");
       try {
-        const charge = await chargeCard(user.id, LIEN_TITLE_SEARCH_FEE, `Post-registration title search: ${where}`, { lienId: lien.id });
+        const charge = await chargeCard(acct(user), LIEN_TITLE_SEARCH_FEE, `Post-registration title search: ${where}`, { lienId: lien.id });
         lien.titleSearchOrder = { orderedAt: new Date().toISOString(), fee: LIEN_TITLE_SEARCH_FEE, chargeId: charge.id };
         (db.charges ??= []).push({ id: randomBytes(4).toString("hex"), at: new Date().toISOString(), amount: LIEN_TITLE_SEARCH_FEE, description: `Title search: ${where}`, stripeId: charge.id, demo: charge.demo });
       } catch (e) {
         return err((e as Error).message);
       }
-      await writeDB(user.id, db);
+      await writeDB(acct(user), db);
       await sendEmail({
         to: ops,
         replyTo: db.company.email || user.email,
@@ -58,15 +60,16 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const fee = LIEN_FILING_FEE + (rush ? LIEN_RUSH_FEE : 0) + (withTitle ? LIEN_TITLE_SEARCH_FEE : 0);
     let chargeId: string;
     try {
-      const charge = await chargeCard(user.id, fee, `Builders lien filing${rush ? " (rush)" : ""}: ${where}`, { lienId: lien.id });
+      const charge = await chargeCard(acct(user), fee, `Builders lien filing${rush ? " (rush)" : ""}: ${where}`, { lienId: lien.id });
       chargeId = charge.id;
       (db.charges ??= []).push({ id: randomBytes(4).toString("hex"), at: new Date().toISOString(), amount: fee, description: `Lien filing${rush ? " (rush)" : ""}: ${where}`, stripeId: charge.id, demo: charge.demo });
     } catch (e) {
       return err((e as Error).message);
     }
+    logActivity(db, user, `Ordered lien filing${rush ? " (rush)" : ""} for ${where}`, `/liens/${lien.id}`);
     lien.filing = { orderedAt: new Date().toISOString(), rush, fee, proofBy, chargeId, status: "ordered" };
     if (withTitle) lien.titleSearchOrder = { orderedAt: lien.filing.orderedAt, fee: LIEN_TITLE_SEARCH_FEE, chargeId };
-    await writeDB(user.id, db);
+    await writeDB(acct(user), db);
 
     const ext = (m: string) => (m === "application/pdf" ? "pdf" : m === "image/png" ? "png" : "jpg");
     const attachments = [{ filename: `Claim of Lien (Form 5).${ext(form5.mime)}`, content: await readUpload(form5.file) }];

@@ -1,3 +1,4 @@
+import { accountIdForUser } from "./auth";
 import { bucketFor, daysOverdue, money } from "./aging";
 import { getJurisdiction, limitationDate, routeForum } from "./jurisdictions";
 import { createMatterForUser, parseMatter } from "./intake";
@@ -311,7 +312,7 @@ async function handle(msg: RpcMsg, ctx: Ctx) {
 
 /** Handles one POST body (a message or a batch). Returns the response body, or null when only notifications were sent. */
 export async function handleRpc(body: unknown, ctx: { userId: string; clientName: string; req: Request }) {
-  const c: Ctx = { userId: ctx.userId, clientName: ctx.clientName, base: baseUrl(ctx.req) };
+  const c: Ctx = { userId: await accountIdForUser(ctx.userId), clientName: ctx.clientName, base: baseUrl(ctx.req) };
   if (Array.isArray(body)) {
     const out = (await Promise.all(body.map((m) => handle(m as RpcMsg, c)))).filter((r) => r !== null);
     return out.length ? out : null;

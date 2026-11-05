@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { money } from "@/lib/aging";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, LIEN_STEPS, LIEN_TITLE_SEARCH_FEE, filingQuote, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86_400_000);
 
-export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string } }) {
+export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string; noPermission?: string } }) {
   const user = await requireUser();
-  const db = await readDB(user.id);
+  const db = await readDB(acct(user));
   const l = db.liens?.find((x) => x.id === params.id);
   if (!l) notFound();
   const dates = lienDates(l);
@@ -28,6 +28,7 @@ export default async function LienPage({ params, searchParams }: { params: { id:
   return (
     <>
       <p className="note"><a href="/liens">← Builders liens</a></p>
+      {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
       <h1>Lien: {l.civicAddress || l.pid || "property"}</h1>
       <p className="sub">{money(l.amount)} owing · {LIEN_ROLE_LABEL[l.role]} · registered owner {l.owner}</p>
       {searchParams.saved && <div className="banner good">Dates saved. Deadlines updated below and in your calendar.</div>}

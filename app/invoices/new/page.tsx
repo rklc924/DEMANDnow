@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireUser, acct } from "@/lib/auth";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default async function NewInvoice({ searchParams }: { searchParams: { error?: string } }) {
   const user = await requireUser();
-  const db = await readDB(user.id);
+  const db = await readDB(acct(user));
   const customers = (db.manual?.customers ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
 
   return (
