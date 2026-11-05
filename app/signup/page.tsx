@@ -16,9 +16,10 @@ export default function Signup({ searchParams }: { searchParams: { error?: strin
         <input type="text" name="company" autoComplete="organization" required />
         <label>Work email</label>
         <input type="text" name="email" autoComplete="email" required />
-        <label>Password (8+ characters)</label>
+        <label>Password (10+ characters)</label>
         <input type="password" name="password" autoComplete="new-password" minLength={10} required />
-        <div style={{ marginTop: 16 }}><button className="btn" style={{ width: "100%" }}>Create account</button></div>
+        <p className="note" style={{ marginTop: 14 }}>By creating an account you agree to the <a href="/terms" target="_blank">terms of service</a> and <a href="/privacy" target="_blank">privacy policy</a>.</p>
+        <div style={{ marginTop: 10 }}><button className="btn" style={{ width: "100%" }}>Create account</button></div>
       </form>
       <p className="note" style={{ marginTop: 16 }}>Already have an account? <a href="/login">Log in</a></p>
     </div>

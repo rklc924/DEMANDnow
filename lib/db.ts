@@ -7,7 +7,7 @@ import { Pool } from "pg";
 // Each record is a JSON document keyed by id, which keeps the rest of the app unchanged while
 // giving us transactions, backups and multiple app instances in production.
 
-export type Table = "users" | "accounts" | "drafts" | "jobs";
+export type Table = "users" | "accounts" | "drafts" | "jobs" | "oauth";
 
 export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
 const usePg = () => !!process.env.DATABASE_URL;
@@ -42,6 +42,11 @@ create table if not exists drafts (
   updated_at timestamptz not null default now()
 );
 create table if not exists jobs (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+create table if not exists oauth (
   id text primary key,
   data jsonb not null,
   updated_at timestamptz not null default now()
@@ -97,6 +102,15 @@ export async function putDoc(table: Table, id: string, data: unknown): Promise<v
   const f = docFile(table, id);
   await fs.mkdir(path.dirname(f), { recursive: true });
   await fs.writeFile(f, JSON.stringify(data, null, 2));
+}
+
+export async function deleteDoc(table: Table, id: string): Promise<void> {
+  if (!id) return;
+  if (usePg()) {
+    await q(`delete from ${table} where id = $1`, [id]);
+    return;
+  }
+  await fs.rm(docFile(table, id), { force: true });
 }
 
 export async function findUserIdByEmail(email: string): Promise<string | null> {
