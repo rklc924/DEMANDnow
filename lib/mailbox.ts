@@ -1,3 +1,4 @@
+import { publicOrigin } from "./origin";
 import { decrypt, encrypt } from "./crypto";
 import type { Mailbox, MailProvider } from "./store";
 
@@ -42,7 +43,7 @@ export const providerLabel = (p: MailProvider) => PROVIDERS[p].label;
 export const isProvider = (p: string): p is MailProvider => p === "microsoft" || p === "google";
 export const providerLive = (p: MailProvider) => !!(PROVIDERS[p].clientId && PROVIDERS[p].clientSecret);
 
-const appUrl = (req: Request) => process.env.APP_URL ?? new URL(req.url).origin;
+const appUrl = (req: Request) => publicOrigin(req);
 export const redirectUri = (req: Request, p: MailProvider) => `${appUrl(req)}/api/connect/${p}/callback`;
 
 export function authorizeUrl(req: Request, p: MailProvider, state: string) {
