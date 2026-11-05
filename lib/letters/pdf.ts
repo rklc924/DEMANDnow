@@ -63,12 +63,28 @@ export async function renderLetterPdf(letter: LetterContent, letterhead?: { byte
   y -= leading / 2;
   letter.recipient.forEach((r) => line(r));
   y -= leading;
+  line(letter.salutation);
+  y -= leading / 2;
   wrap(letter.subject, bold);
   y -= leading / 2;
-  for (const p of letter.paragraphs) {
+  letter.paragraphs.forEach((p, i) => {
     wrap(p);
     y -= leading / 2;
-  }
+    if (i === letter.statementAfter) {
+      for (const s of letter.statement) {
+        newPageIfNeeded();
+        const f = s.total ? bold : font;
+        if (s.total) {
+          page.drawLine({ start: { x: PAGE[0] - MARGIN_X - 110, y: y + leading - 3 }, end: { x: PAGE[0] - MARGIN_X - 30, y: y + leading - 3 }, thickness: 0.6 });
+        }
+        page.drawText(s.label, { x: MARGIN_X + 24, y, size, font: f });
+        const w = f.widthOfTextAtSize(s.amount, size);
+        page.drawText(s.amount, { x: PAGE[0] - MARGIN_X - 30 - w, y, size, font: f });
+        y -= leading;
+      }
+      y -= leading / 2;
+    }
+  });
   y -= leading / 2;
   letter.signoff.forEach((s) => (s ? line(s) : (y -= leading)));
 

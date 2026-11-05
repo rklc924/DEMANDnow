@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
+import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/aging";
 import { getJurisdiction } from "@/lib/jurisdictions";
 import { loadRow } from "@/lib/ledger";
+import { ClaimSheet, StepGuide } from "../../guide";
 
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string } }) {
-  const { db, row } = await loadRow(params.id);
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string } }) {
+  const user = await requireUser();
+  const { db, row } = await loadRow(user.id, params.id);
   if (!row) notFound();
   const j = getJurisdiction(db.company.jurisdiction);
   const { invoice, customer, forum, letter } = row;
@@ -22,6 +25,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       <h1>{invoice.number} · {customer.name}</h1>
       <p className="sub">{money(invoice.amountDue)} · {row.days} days past due · {customer.kind} customer</p>
       {searchParams.sent && <div className="banner good">Demand letter sent by email. Deadline to pay: {letter && fmt(letter.deadline)}.</div>}
+      {searchParams.limit && <div className="banner warn">{searchParams.limit} <a href="/billing">See plans</a></div>}
       {searchParams.review && <div className="banner good">Sent to the firm for review. A lawyer will contact you within one business day.</div>}
       {row.paid && <div className="banner good">Marked paid. The workflow has stopped.</div>}
       {row.daysToLimitation <= 120 && row.daysToLimitation > 0 && (
@@ -55,6 +59,9 @@ export default async function CasePage({ params, searchParams }: { params: { id:
             <dt>Limitation date</dt><dd>{fmt(row.limitation)} <span className="note">(approximate: {j.limitation.note})</span></dd>
           </dl>
           <div className="row" style={{ marginTop: 14 }}>
+            {(reviewRequested || !forum.selfServe) && (
+              <a className="btn ghost" href={`/api/letters/${invoice.id}?variant=firm`} target="_blank">Firm demand letter</a>
+            )}
             {reviewRequested ? <span className="pill good">Lawyer review requested</span> : (
               <form action={`/api/review/${invoice.id}`} method="post"><button className="btn ghost">{forum.selfServe ? "Request lawyer review (add-on)" : "Send file to the firm"}</button></form>
             )}
@@ -62,33 +69,8 @@ export default async function CasePage({ params, searchParams }: { params: { id:
         </div>
       </div>
 
-      <div className="card">
-        <h2>Step-by-step: {forum.name}</h2>
-        <ol className="steps">
-          {forum.steps.map((s, i) => (
-            <li key={s.id} className={i === 0 && letter && deadlinePassed ? "done" : ""}>
-              <div className="t">{s.title} {s.verify && <span className="pill grey" title="Confirm against current rules before relying on it">confirm</span>}</div>
-              <div className="d">{s.detail}{s.document ? <> · <b>App prepares:</b> {s.document}</> : null}</div>
-            </li>
-          ))}
-        </ol>
-        <p className="note">{j.disclaimer}</p>
-      </div>
-
-      {forum.id === "small-claims" && (
-        <div className="card">
-          <h2>Notice of Claim: data the app will put on the form</h2>
-          <dl className="kv">
-            <dt>Claimant</dt><dd>{db.company.name}, {db.company.phone}, {db.company.email}</dd>
-            <dt>Defendant</dt><dd>{customer.name}, {customer.address.join(", ")}</dd>
-            <dt>Registry</dt><dd>Nearest to {customer.address.at(-1)} (defendant's location) — confirm</dd>
-            <dt>What happened</dt><dd>The claimant provided {invoice.description.toLowerCase()} to the defendant and billed it on invoice {invoice.number} dated {fmt(invoice.issueDate)}, payable by {fmt(invoice.dueDate)}. The defendant has not paid. A written demand was {letter ? `sent on ${fmt(letter.sentAt)}` : "not yet sent"}.</dd>
-            <dt>Amount claimed</dt><dd>{money(invoice.amountDue)} plus interest{invoice.interestRate ? ` at the contract rate of ${invoice.interestRate}%` : " under the Court Order Interest Act"}, and filing and service fees</dd>
-            <dt>Attachments</dt><dd>Invoice, contract or terms, demand letter, proof of delivery</dd>
-          </dl>
-          <p className="note">Phase 4 fills the official fillable PDF with these fields.</p>
-        </div>
-      )}
+      <StepGuide row={row} j={j} firstDone={!!letter && deadlinePassed} />
+      {forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
     </>
   );
 }

@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { go, withUser } from "@/lib/http";
 import { runAutoSend } from "@/lib/send";
 
-// Called by the nightly scheduler (and the "Run nightly sync" button in the prototype).
-export async function POST(req: Request) {
-  const sent = await runAutoSend();
-  return NextResponse.redirect(new URL(`/?autosent=${sent.length}`, req.url), 303);
-}
+// Called by the nightly scheduler for every account (and by the "Run nightly sync" button in the prototype).
+export const POST = (req: Request) =>
+  withUser(req, async (user) => {
+    const { sent, held } = await runAutoSend(user.id);
+    return go(req, `/?autosent=${sent.length}&held=${held}`);
+  });

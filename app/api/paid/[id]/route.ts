@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
 // Prototype stand-in for payment detection from the accounting sync.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const db = await readDB();
-  if (!db.paidInvoiceIds.includes(params.id)) db.paidInvoiceIds.push(params.id);
-  await writeDB(db);
-  return NextResponse.redirect(new URL(`/cases/${params.id}`, req.url), 303);
-}
+export const POST = (req: Request, { params }: { params: { id: string } }) =>
+  withUser(req, async (user) => {
+    const db = await readDB(user.id);
+    if (!db.paidInvoiceIds.includes(params.id)) db.paidInvoiceIds.push(params.id);
+    await writeDB(user.id, db);
+    return go(req, `/cases/${params.id}`);
+  });

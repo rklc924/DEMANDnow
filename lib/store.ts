@@ -1,7 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
+import type { Customer, Invoice } from "./accounting/types";
+import type { Interval, PlanId } from "./plans";
 
-// Minimal JSON file store for the prototype. Swap for Postgres (Prisma) in phase 2; callers only use these functions.
+// Minimal JSON file store for the prototype, one file per account. Swap for Postgres (Prisma)
+// in phase 2; callers only use these functions.
 
 export interface Company {
   name: string;
@@ -29,47 +32,68 @@ export interface LetterRecord {
   deadline: string;
 }
 
+export interface Subscription {
+  plan: PlanId;
+  interval: Interval;
+  status: "active" | "canceled";
+  startedAt: string;
+  renewsAt: string;
+  stripeSubscriptionId?: string;
+}
+
 export interface DB {
   company: Company;
   settings: Settings;
+  subscription?: Subscription;
+  stripeCustomerId?: string;
   letters: LetterRecord[];
   paidInvoiceIds: string[];
   reviewRequests?: { invoiceId: string; requestedAt: string }[];
+  /** Matters entered by hand (or imported from a one-off), alongside the accounting sync. */
+  manual?: { customers: Customer[]; invoices: Invoice[] };
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "db.json");
+export const DATA_DIR = path.join(process.cwd(), "data");
+const accountDir = (accountId: string) =>
+  path.join(DATA_DIR, "accounts", accountId.replace(/[^a-zA-Z0-9_-]/g, ""));
 
-const DEFAULT_DB: DB = {
+const defaultDB = (companyName: string): DB => ({
   company: {
-    name: "Coastal Millwork & Supply Ltd.",
-    signatory: "Alex Morgan",
-    signatoryTitle: "Accounts Receivable Manager",
-    phone: "604-555-0142",
-    email: "ar@coastalmillwork.example",
-    paymentInstructions: "Pay by e-transfer to ar@coastalmillwork.example, or by cheque payable to Coastal Millwork & Supply Ltd.",
+    name: companyName,
+    signatory: "",
+    signatoryTitle: "",
+    phone: "",
+    email: "",
+    paymentInstructions: `Pay by e-transfer, or by cheque payable to ${companyName}.`,
     jurisdiction: "BC",
   },
   settings: { autoSend: false, thresholdDays: 90, responseDays: 14 },
   letters: [],
   paidInvoiceIds: [],
-};
+});
 
-export async function readDB(): Promise<DB> {
+export async function readDB(accountId: string): Promise<DB> {
   try {
-    return JSON.parse(await fs.readFile(DB_FILE, "utf8")) as DB;
+    return JSON.parse(await fs.readFile(path.join(accountDir(accountId), "db.json"), "utf8")) as DB;
   } catch {
-    return structuredClone(DEFAULT_DB);
+    return defaultDB("Your company");
   }
 }
 
-export async function writeDB(db: DB): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(DB_FILE, JSON.stringify(db, null, 2));
+export async function writeDB(accountId: string, db: DB): Promise<void> {
+  const dir = accountDir(accountId);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, "db.json"), JSON.stringify(db, null, 2));
 }
 
-export async function saveUpload(name: string, bytes: Uint8Array): Promise<string> {
-  const dir = path.join(DATA_DIR, "uploads");
+export async function createAccountDB(accountId: string, companyName: string, email: string) {
+  const db = defaultDB(companyName);
+  db.company.email = email;
+  await writeDB(accountId, db);
+}
+
+export async function saveUpload(accountId: string, name: string, bytes: Uint8Array): Promise<string> {
+  const dir = path.join(accountDir(accountId), "uploads");
   await fs.mkdir(dir, { recursive: true });
   const file = path.join(dir, name);
   await fs.writeFile(file, bytes);

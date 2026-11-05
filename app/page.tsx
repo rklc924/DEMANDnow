@@ -1,5 +1,7 @@
 import { BUCKETS, money } from "@/lib/aging";
+import { requireUser } from "@/lib/auth";
 import { loadRows, type Row } from "@/lib/ledger";
+import { usage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +16,10 @@ function status(r: Row) {
   return <span className="pill grey">Watching</span>;
 }
 
-export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string } }) {
-  const { db, rows } = await loadRows();
+export default async function Dashboard({ searchParams }: { searchParams: { autosent?: string; held?: string } }) {
+  const user = await requireUser();
+  const { db, rows } = await loadRows(user.id);
+  const u = usage(db);
   const open = rows.filter((r) => !r.paid);
   const totals = BUCKETS.map((b) => {
     const rs = open.filter((r) => r.bucket === b);
@@ -36,8 +40,9 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
         </form>
       </div>
       {searchParams.autosent && (
-        <div className="banner good">Nightly sync ran. {searchParams.autosent} letter(s) auto-sent.</div>
+        <div className="banner good">Nightly sync ran. {searchParams.autosent} letter(s) auto-sent.{Number(searchParams.held) > 0 && ` ${searchParams.held} held back: monthly plan limit reached.`}</div>
       )}
+      {!u.plan && <div className="banner warn">You're on no plan yet. <a href="/billing">Choose a plan</a> to send demand letters.</div>}
       {!db.company.letterhead && (
         <div className="banner warn">No letterhead uploaded yet. Letters use a plain page until you <a href="/settings">upload one</a>.</div>
       )}

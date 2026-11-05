@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
 // Paid add-on: sends the assembled file to the firm for review. Prototype records the request;
-// phase 5 creates the matter in the firm's practice management system and notifies a lawyer.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const db = await readDB();
-  db.reviewRequests ??= [];
-  if (!db.reviewRequests.some((r) => r.invoiceId === params.id))
-    db.reviewRequests.push({ invoiceId: params.id, requestedAt: new Date().toISOString() });
-  await writeDB(db);
-  return NextResponse.redirect(new URL(`/cases/${params.id}?review=1`, req.url), 303);
-}
+// phase 5 opens the matter in the firm's practice management system and notifies a lawyer.
+export const POST = (req: Request, { params }: { params: { id: string } }) =>
+  withUser(req, async (user) => {
+    const db = await readDB(user.id);
+    db.reviewRequests ??= [];
+    if (!db.reviewRequests.some((r) => r.invoiceId === params.id))
+      db.reviewRequests.push({ invoiceId: params.id, requestedAt: new Date().toISOString() });
+    await writeDB(user.id, db);
+    return go(req, `/cases/${params.id}?review=1`);
+  });

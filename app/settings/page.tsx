@@ -1,9 +1,11 @@
+import { requireUser } from "@/lib/auth";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export default async function Settings({ searchParams }: { searchParams: { saved?: string } }) {
-  const { company: c, settings: s } = await readDB();
+  const user = await requireUser();
+  const { company: c, settings: s } = await readDB(user.id);
   return (
     <>
       <h1>Company &amp; letterhead</h1>

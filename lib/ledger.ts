@@ -19,32 +19,36 @@ export interface Row {
 
 const provider = sampleProvider; // phase 2: the unified accounting API connector
 
-export async function loadRows(db?: DB): Promise<{ db: DB; rows: Row[] }> {
-  db ??= await readDB();
+export function buildRow(db: DB, invoice: Invoice, customer: Customer, today = new Date()): Row {
   const j = getJurisdiction(db.company.jurisdiction);
-  const [customers, invoices] = await Promise.all([provider.fetchCustomers(), provider.fetchOpenInvoices()]);
+  const days = daysOverdue(invoice.dueDate, today);
+  const lim = limitationDate(j, invoice.dueDate);
+  return {
+    invoice,
+    customer,
+    days,
+    bucket: bucketFor(days),
+    letter: db.letters.findLast((l) => l.invoiceId === invoice.id),
+    forum: routeForum(j, invoice.amountDue),
+    limitation: lim.toISOString().slice(0, 10),
+    daysToLimitation: Math.ceil((lim.getTime() - today.getTime()) / 86_400_000),
+    paid: db.paidInvoiceIds.includes(invoice.id),
+  };
+}
+
+export async function loadRows(accountId: string, db?: DB): Promise<{ db: DB; rows: Row[] }> {
+  db ??= await readDB(accountId);
+  const [synced, syncedInvoices] = await Promise.all([provider.fetchCustomers(), provider.fetchOpenInvoices()]);
+  const customers = [...synced, ...(db.manual?.customers ?? [])];
+  const invoices = [...syncedInvoices, ...(db.manual?.invoices ?? [])];
   const byId = new Map(customers.map((c) => [c.id, c]));
   const today = new Date();
-  const rows = invoices.map((invoice) => {
-    const days = daysOverdue(invoice.dueDate, today);
-    const lim = limitationDate(j, invoice.dueDate);
-    return {
-      invoice,
-      customer: byId.get(invoice.customerId)!,
-      days,
-      bucket: bucketFor(days),
-      letter: db!.letters.findLast((l) => l.invoiceId === invoice.id),
-      forum: routeForum(j, invoice.amountDue),
-      limitation: lim.toISOString().slice(0, 10),
-      daysToLimitation: Math.ceil((lim.getTime() - today.getTime()) / 86_400_000),
-      paid: db!.paidInvoiceIds.includes(invoice.id),
-    };
-  });
+  const rows = invoices.filter((i) => byId.has(i.customerId)).map((i) => buildRow(db!, i, byId.get(i.customerId)!, today));
   rows.sort((a, b) => b.days - a.days);
   return { db, rows };
 }
 
-export async function loadRow(invoiceId: string) {
-  const { db, rows } = await loadRows();
+export async function loadRow(accountId: string, invoiceId: string) {
+  const { db, rows } = await loadRows(accountId);
   return { db, row: rows.find((r) => r.invoice.id === invoiceId) };
 }
