@@ -2,6 +2,7 @@ New features and changes to Demand Now, newest first.
 
 # November 2026
 
+- **Swearing and notarizing.** For affidavits and other documents that must be sworn or notarized, use a local partner or book a mobile notary or commissioner to come to you. See [Swearing and notarizing documents](/help/sworn-documents).
 - **Team accounts.** Add colleagues as Admins or regular users, choose what each regular user can do, and see a log of recent activity. See [Your team and user roles](/help/team).
 - **Receipts.** Download a paid receipt for every payment under **Billing > Invoices and receipts**.
 - **User manual.** This manual is now built into the app under **Help**, and it's updated with every new feature.

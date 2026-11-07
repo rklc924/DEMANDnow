@@ -50,6 +50,8 @@ services:
         sync: false
       - key: SERVICE_OPS_EMAIL
         sync: false
+      - key: WITNESS_OPS_EMAIL
+        sync: false
       - key: LIEN_FILING_EMAIL
         sync: false
       - key: ANTHROPIC_API_KEY

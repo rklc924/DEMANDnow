@@ -48,7 +48,7 @@ export const BC: Jurisdiction = {
         { id: "settlement", title: "Settlement conference or mediation", detail: "If the debtor disputes, the registry schedules a settlement conference or mediation." },
         { id: "trial", title: "Trial", detail: "Bring the invoices, contract, demand letter and delivery proof." },
         { id: "payment-hearing", title: "Payment hearing", detail: "If the order is unpaid, summon the debtor to a payment hearing to examine their finances.", document: "Summons to a payment hearing", verify: true },
-        { id: "garnish", title: "Garnishing order after judgment", detail: "Garnish wages or bank accounts through the Court Order Enforcement Act process.", document: "Garnishing order data sheet", verify: true },
+        { id: "garnish", title: "Garnishing order after judgment", detail: "Garnish wages or bank accounts through the Court Order Enforcement Act process.", document: "Garnishing order data sheet", verify: true, witness: { kind: "commissioner", document: "Affidavit in support of the garnishing order", note: "You swear or affirm that the facts in the affidavit are true, then sign it in front of the commissioner." } },
       ],
       service: {
         document: "Notice of Claim",

@@ -3,6 +3,7 @@ import { money } from "@/lib/aging";
 import type { EnforcementStep, Jurisdiction } from "@/lib/jurisdictions/types";
 import type { Row } from "@/lib/ledger";
 import type { CaseProgress, Company, DocCheck } from "@/lib/store";
+import { WitnessOptions, type WitnessContext } from "./witness";
 
 // The step-by-step enforcement guide and Notice of Claim data sheet, shared by subscriber cases and one-offs.
 
@@ -178,11 +179,12 @@ function BookingForm({ s, b }: { s: NonNullable<Row["forum"]["service"]>; b: Boo
 const NL = String.fromCharCode(10);
 
 /** The matter's steps as a tick-box checklist. Steps that need outside proof take an upload, which is checked. */
-export function CaseChecklist({ row, j, progress, autoDone }: { row: Row; j: Jurisdiction; progress?: CaseProgress; autoDone?: string[] }) {
-  return <Checklist title={`Checklist: ${row.forum.name}`} steps={row.forum.steps} api={`/api/cases/${row.invoice.id}`} progress={progress} autoDone={autoDone} disclaimer={j.disclaimer} />;
+export function CaseChecklist({ row, j, progress, autoDone, witness }: { row: Row; j: Jurisdiction; progress?: CaseProgress; autoDone?: string[]; witness?: WitnessContext }) {
+  return <Checklist title={`Checklist: ${row.forum.name}`} steps={row.forum.steps} api={`/api/cases/${row.invoice.id}`} progress={progress} autoDone={autoDone} disclaimer={j.disclaimer} witness={witness} />;
 }
 
-export function Checklist({ title, steps, api, progress, autoDone, disclaimer }: { title: string; steps: EnforcementStep[]; api: string; progress?: CaseProgress; autoDone?: string[]; disclaimer: string }) {
+/** `witness` turns on the sworn/notarized options under steps marked `witness`. */
+export function Checklist({ title, steps, api, progress, autoDone, disclaimer, witness }: { title: string; steps: EnforcementStep[]; api: string; progress?: CaseProgress; autoDone?: string[]; disclaimer: string; witness?: WitnessContext }) {
   const done = new Set([...(progress?.done ?? []), ...(autoDone ?? [])]);
   const total = steps.length;
   const count = steps.filter((s) => done.has(s.id)).length;
@@ -208,6 +210,7 @@ export function Checklist({ title, steps, api, progress, autoDone, disclaimer }:
               <div className="body">
                 <div className="t">{s.title} {s.verify && <span className="pill grey" title="Confirm against current rules before relying on it">confirm</span>}</div>
                 <div className="d">{s.detail}{s.document ? <> · <b>Prepared for you:</b> {s.document}</> : null}</div>
+                {s.witness && witness && !isDone && <WitnessOptions need={s.witness} step={s.id} ctx={witness} compact />}
                 {s.upload && (
                   <div className="upload">
                     {latest && <DocResult doc={latest} />}

@@ -30,7 +30,7 @@ Below the letter is a **Checklist** for the matter's route, with a progress bar.
 6. Settlement conference or mediation, if the debtor disputes.
 7. Trial.
 8. Payment hearing, if the judgment isn't paid.
-9. Garnishing order after judgment.
+9. Garnishing order after judgment. The affidavit for this step has to be sworn before a commissioner. See [Swearing and notarizing documents](/help/sworn-documents).
 
 **CRT checklist:**
 

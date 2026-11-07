@@ -4,13 +4,14 @@ import { money } from "@/lib/aging";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, LIEN_STEPS, LIEN_TITLE_SEARCH_FEE, filingQuote, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
 import { Checklist } from "../../guide";
+import { WitnessCard, witnessMessage, type WitnessContext } from "../../witness";
 
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86_400_000);
 
-export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string; noPermission?: string } }) {
+export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string; noPermission?: string; witnessBooked?: string; witnessReferral?: string; witnessError?: string } }) {
   const user = await requireUser();
   const db = await readDB(acct(user));
   const l = db.liens?.find((x) => x.id === params.id);
@@ -23,6 +24,13 @@ export default async function LienPage({ params, searchParams }: { params: { id:
   const hasForm5 = !!progress?.docs.some((d) => d.stepId === "claim" && d.status !== "issues");
   const standardLate = quote.standardBy > fileBy.date;
   const rushLate = quote.rushBy > fileBy.date;
+  const witness: WitnessContext = {
+    matter: `lien:${l.id}`,
+    back: `/liens/${l.id}`,
+    card: db.card ? `${db.card.brand.toUpperCase()} ending ${db.card.last4}` : undefined,
+    jobs: (db.witnessJobs ?? []).filter((w) => w.matter === `lien:${l.id}`),
+    message: witnessMessage(searchParams),
+  };
   const hasIssues = progress?.docs.some((d) => d.status === "issues");
 
   return (
@@ -141,7 +149,8 @@ export default async function LienPage({ params, searchParams }: { params: { id:
         </div>
       )}
 
-      <Checklist title="Lien checklist" steps={LIEN_STEPS} api={`/api/liens/${l.id}`} progress={progress} autoDone={l.filedDate ? ["dates", "file"] : []} disclaimer="This is legal information about BC builders liens, not legal advice. A lawyer should handle the court action." />
+      <Checklist title="Lien checklist" steps={LIEN_STEPS} api={`/api/liens/${l.id}`} progress={progress} autoDone={l.filedDate ? ["dates", "file"] : []} disclaimer="This is legal information about BC builders liens, not legal advice. A lawyer should handle the court action." witness={witness} />
+      <WitnessCard ctx={witness} />
     </>
   );
 }

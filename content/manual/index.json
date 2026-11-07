@@ -51,6 +51,16 @@
       ]
     },
     {
+      "slug": "sworn-documents",
+      "group": "Everyday use",
+      "title": "Swearing and notarizing documents",
+      "summary": "Use a local partner or book a mobile notary or commissioner for affidavits and other sworn documents.",
+      "routes": [
+        "/cases/[id]",
+        "/liens/[id]"
+      ]
+    },
+    {
       "slug": "calendar",
       "group": "Everyday use",
       "title": "Calendar and reminders",
