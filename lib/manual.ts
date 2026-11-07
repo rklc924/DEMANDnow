@@ -5,6 +5,7 @@ import { LIEN_FILING_FEE, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, LIEN_TITLE_SEARCH_F
 import { ONE_OFF_PRICE } from "./oneoff";
 import { COMPANY_SEARCH_FEE } from "./party";
 import { PLANS } from "./plans";
+import { WITNESS_PAGE_FEE } from "./witness";
 
 // The user manual shown at /help. Each chapter is a Markdown file in content/manual/, listed in
 // content/manual/index.json with the app routes it explains. scripts/check-manual.mjs fails CI when
@@ -40,6 +41,7 @@ export const MANUAL_TOKENS: Record<string, string> = {
   LIEN_RUSH_FEE: dollars(LIEN_RUSH_FEE),
   LIEN_STANDARD_DAYS: String(LIEN_STANDARD_DAYS),
   LIEN_TITLE_SEARCH_FEE: dollars(LIEN_TITLE_SEARCH_FEE),
+  WITNESS_PAGE_FEE: dollars(WITNESS_PAGE_FEE),
   CRT_MAX: "$5,000",
   SMALL_CLAIMS_MAX: dollars(BC.forums.find((f) => f.id === "small-claims")?.maxClaim ?? 35000),
   LIMITATION_YEARS: String(BC.limitation.years),

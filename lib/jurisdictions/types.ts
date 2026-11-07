@@ -47,6 +47,8 @@ export interface EnforcementStep {
   verify?: boolean;
   /** Steps that depend on something outside the app ask the client to upload proof, which is then checked. */
   upload?: StepUpload;
+  /** The step's document must be sworn, affirmed or notarized: offers a local partner or a mobile notary/commissioner. */
+  witness?: import("../witness").WitnessNeed;
 }
 
 export interface StepUpload {

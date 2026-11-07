@@ -231,6 +231,10 @@ body { overflow-x: clip; }
 .booking summary::-webkit-details-marker { display: none; }
 ul.jobs { list-style: none; padding: 0; margin: 0 0 10px; font-size: 14px; }
 ul.jobs li { padding: 4px 0; }
+.witness summary { list-style: none; display: inline-block; cursor: pointer; }
+.witness summary::-webkit-details-marker { display: none; }
+.witness.compact { margin-top: 6px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; }
+.witness .grid2 { align-items: start; }
 
 .linkbtn { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; font-weight: 600; }
 

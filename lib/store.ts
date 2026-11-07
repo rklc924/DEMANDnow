@@ -123,6 +123,8 @@ export interface DB {
   /** The other party's confirmed legal name and address, by customer id (lib/party.ts). */
   parties?: Record<string, import("./party").Party>;
   liens?: Lien[];
+  /** Mobile notary/commissioner bookings and partner referrals (lib/witness.ts). */
+  witnessJobs?: import("./witness").WitnessJob[];
   /** Per matter (invoice id or lien id): ticked steps and documents uploaded for steps that need outside proof. */
   progress?: Record<string, CaseProgress>;
   /** Demo mode only: what would have been emailed. */

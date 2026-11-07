@@ -5,12 +5,13 @@ import { getJurisdiction } from "@/lib/jurisdictions";
 import { loadRow } from "@/lib/ledger";
 import { CaseChecklist, ClaimSheet, ServiceOptions } from "../../guide";
 import { PartyCard } from "./party";
+import { WitnessCard, witnessMessage, type WitnessContext } from "../../witness";
 
 export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string; noPermission?: string } }) {
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string; noPermission?: string; witnessBooked?: string; witnessReferral?: string; witnessError?: string } }) {
   const user = await requireUser();
   const { db, row } = await loadRow(acct(user), params.id);
   if (!row) notFound();
@@ -19,6 +20,13 @@ export default async function CasePage({ params, searchParams }: { params: { id:
   const deadlinePassed = letter ? new Date(letter.deadline + "T23:59:59") < new Date() : false;
   const reviewRequested = db.reviewRequests?.some((r) => r.invoiceId === invoice.id);
   const consumerNeedsReview = customer.kind === "consumer";
+  const witness: WitnessContext = {
+    matter: `case:${invoice.id}`,
+    back: `/cases/${invoice.id}`,
+    card: db.card ? `${db.card.brand.toUpperCase()} ending ${db.card.last4}` : undefined,
+    jobs: (db.witnessJobs ?? []).filter((w) => w.matter === `case:${invoice.id}`),
+    message: witnessMessage(searchParams),
+  };
   const reminders = (db.reminders ?? []).filter((r) => r.invoiceId === invoice.id && (!letter || r.id.startsWith(letter.id)));
 
   return (
@@ -94,7 +102,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       {Object.values(db.progress?.[invoice.id]?.docs ?? []).some((d) => d.status === "issues") && (
         <div className="banner bad">A document you uploaded has problems. See the red box in the checklist below.</div>
       )}
-      <CaseChecklist row={row} j={j} progress={db.progress?.[invoice.id]} autoDone={letter && deadlinePassed ? ["demand"] : []} />
+      <CaseChecklist row={row} j={j} progress={db.progress?.[invoice.id]} autoDone={letter && deadlinePassed ? ["demand"] : []} witness={witness} />
       {forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
       <ServiceOptions
         forum={forum}
@@ -118,6 +126,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
                 : undefined,
         }}
       />
+      <WitnessCard ctx={witness} />
     </>
   );
 }
