@@ -312,3 +312,10 @@ details > summary { cursor: pointer; padding: 6px 0; }
 @media (max-width: 800px) { header.top nav { flex-wrap: wrap; gap: 4px 14px; } }
 @media (max-width: 800px) { header.top .row { flex-wrap: wrap; } header.top nav a { white-space: nowrap; } .card > table, .card table { display: block; overflow-x: auto; } }
 @media (max-width: 800px) { footer.foot .wrap { flex-wrap: wrap; row-gap: 6px; } }
+.chip.tenancy { background: #e6eefc; color: #1f4f9a; }
+.card.picked { outline: 2px solid #0F766E; }
+.missing { color: #a42828; font-weight: 600; }
+details.sheet { border-top: 1px solid #e6e1d6; padding: 10px 0; }
+details.sheet summary { cursor: pointer; }
+details.card.section > summary { cursor: pointer; list-style: none; }
+details.card.section > summary::-webkit-details-marker { display: none; }

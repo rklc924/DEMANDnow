@@ -28,6 +28,8 @@ The prototype uses a sample ledger (`lib/accounting/sample.ts`) and a JSON file 
 - **Calendar** (`/calendar`): month view and agenda of every deadline, follow-up, limitation date and lien deadline, with overdue, upcoming and collected filters, and an .ics of everything.
 - **Builders lien add-on** (`/liens`): for contractors, subtrades, workers and suppliers. Collects the critical dates, calculates the 45-day filing deadline (s. 20), the one-year action deadline and the 21-day notice deadline (s. 33), fills the Form 5 data, and runs a checklist with checked uploads (title search, signed Form 5, registration). The per-lien price ($149) is a placeholder.
 
+- **Landlord section** (`/landlord`): unpaid rent for residential tenancies and commercial leases. A rent ledger (payments applied oldest first) feeds a rent demand letter on the letterhead. Residential files follow the RTB's unpaid-rent steps and collect every detail for the RTB-30, RTB-34, RTB-46, RTB-12L-DR and RTB-44, with data sheets on screen and as a PDF, and dates worked out from the service method. Commercial files explain distress, re-entry and suing, and route the claim CRT / Small Claims / lawyer by amount. Rules live in `lib/tenancy/bc.ts`; add `ab.ts` for Alberta.
+
 - **User manual** (`/help`): customer manual built from the Markdown chapters in `content/manual/`. Prices are filled in from the code. Every feature PR updates it (see `CLAUDE.md`); `npm run check:manual` and the "User manual" GitHub Action fail if a page has no chapter.
 
 ## Put it online (Render)
@@ -63,12 +65,15 @@ Prices are defined in `lib/plans.ts` and `lib/oneoff.ts` and sent to Stripe inli
 | `lib/plans.ts`, `lib/usage.ts` | Tiers, prices and the monthly letter limit |
 | `lib/stripe.ts` | Stripe Checkout, customer portal and webhook sync |
 | `lib/oneoff.ts` | $75 one-off demands |
+| `lib/tenancy/` | Landlord section: rules pack per province (`bc.ts`), rent ledger, key dates and RTB form data sheets (`index.ts`) |
+| `lib/letters/rent.ts` | Rent demand letter wording (residential and commercial) |
 
 ## Before launch
 
 - Replace the letter wording with firm-authored text. CLEBC precedents are for internal firm use only.
 - Have a lawyer confirm every step marked `verify` in `bc.ts` against the current Small Claims Rules and CRT rules.
 - Get a Law Society practice advisor's view on court-document generation (Legal Profession Act s. 15).
+- Have a lawyer confirm every step and date marked `verify` or `confirm` in `lib/tenancy/bc.ts` (deemed service days, the 15-day deposit rule, the 2-year RTB limitation, distress and re-entry).
 - Have a lawyer confirm the builders lien steps and deadlines in `lib/liens.ts` (from LSBC checklist E-6), including statutory holidays and strata rules.
 - Agree process-server rates with a partner and replace the sample prices in `bc.ts`. Set the lien add-on price and wire it to Stripe.
 - Encrypt stored mailbox tokens at rest, and get Microsoft and Google app verification for the mail and calendar scopes.

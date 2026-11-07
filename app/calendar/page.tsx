@@ -5,7 +5,7 @@ import { loadRows } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 
-const KIND_LABEL: Record<CalEvent["kind"], string> = { deadline: "Payment deadline", followup: "Next step", limitation: "Limitation", collected: "Collected", lien: "Builders lien" };
+const KIND_LABEL: Record<CalEvent["kind"], string> = { deadline: "Payment deadline", followup: "Next step", limitation: "Limitation", collected: "Collected", lien: "Builders lien", tenancy: "Rent arrears" };
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
 type View = "all" | "overdue" | "upcoming" | "collected";
@@ -77,7 +77,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: { m
         </div>
         <div className="legend">
           <span className="chip deadline">Payment deadline</span><span className="chip followup">Next step</span>
-          <span className="chip limitation">Limitation</span><span className="chip lien">Builders lien</span><span className="chip collected">Collected</span><span className="chip late">Overdue</span>
+          <span className="chip limitation">Limitation</span><span className="chip lien">Builders lien</span><span className="chip tenancy">Rent arrears</span><span className="chip collected">Collected</span><span className="chip late">Overdue</span>
         </div>
       </div>
 

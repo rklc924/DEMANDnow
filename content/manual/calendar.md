@@ -1,4 +1,4 @@
-The **Calendar** page collects every date across your matters: payment deadlines, next steps, limitation dates, builders lien deadlines and collected debts.
+The **Calendar** page collects every date across your matters: payment deadlines, next steps, limitation dates, builders lien deadlines, rent arrears dates from the [Landlord section](/help/landlord) and collected debts.
 
 # Using the calendar
 

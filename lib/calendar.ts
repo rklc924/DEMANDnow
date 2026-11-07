@@ -1,12 +1,13 @@
 import { money } from "./aging";
 import type { Row } from "./ledger";
 import { lienDates } from "./liens";
+import { ledger, tenancyDates } from "./tenancy";
 import type { DB } from "./store";
 
 // Everything date-driven across all matters, for the Calendar page: deadlines, follow-ups, limitation dates,
 // and matters already collected.
 
-export type EventKind = "deadline" | "followup" | "limitation" | "collected" | "lien";
+export type EventKind = "deadline" | "followup" | "limitation" | "collected" | "lien" | "tenancy";
 
 export interface CalEvent {
   date: string; // YYYY-MM-DD
@@ -45,6 +46,14 @@ export function buildEvents(db: DB, rows: Row[], today = new Date().toISOString(
     for (const d of lienDates(l)) {
       if (d.done) continue;
       out.push({ ...base, date: d.date, kind: "lien", title: `Lien: ${d.label}`, overdue: d.date < today });
+    }
+  }
+  for (const t of db.tenancies ?? []) {
+    if (t.satisfied) continue;
+    const base = { invoiceId: t.id, href: `/landlord/${t.id}`, who: [t.unit, t.street].filter(Boolean).join(" - "), amount: money(ledger(t).total) };
+    for (const d of tenancyDates(t)) {
+      if (d.done) continue;
+      out.push({ ...base, date: d.date, kind: "tenancy", title: `Rent: ${d.label}`, overdue: d.date < today });
     }
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));

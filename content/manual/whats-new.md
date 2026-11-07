@@ -2,6 +2,7 @@ New features and changes to Demand Now, newest first.
 
 # November 2026
 
+- **Landlord section.** Collect unpaid rent with a rent ledger and a rent demand letter. Residential files take you through the RTB's steps with every detail for the RTB-30, RTB-34, RTB-46, RTB-12L-DR and RTB-44, and data sheets to print. Commercial files explain your lease remedies and route the claim to the CRT, Small Claims or a lawyer. See [Landlord: unpaid rent](/help/landlord).
 - **Team accounts.** Add colleagues as Admins or regular users, choose what each regular user can do, and see a log of recent activity. See [Your team and user roles](/help/team).
 - **Receipts.** Download a paid receipt for every payment under **Billing > Invoices and receipts**.
 - **User manual.** This manual is now built into the app under **Help**, and it's updated with every new feature.

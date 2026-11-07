@@ -60,6 +60,16 @@
       ]
     },
     {
+      "slug": "landlord",
+      "group": "Everyday use",
+      "title": "Landlord: unpaid rent",
+      "summary": "Collect rent arrears: residential tenancies through the RTB, and commercial leases.",
+      "routes": [
+        "/landlord",
+        "/landlord/[id]"
+      ]
+    },
+    {
       "slug": "builders-liens",
       "group": "Add-ons",
       "title": "Builders liens",
