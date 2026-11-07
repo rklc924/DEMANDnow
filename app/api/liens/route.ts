@@ -1,4 +1,5 @@
-import { acct } from "@/lib/auth";
+import { acct, can } from "@/lib/auth";
+import { assignMatter, chosenAssignee, lienLabel } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { go, withUser } from "@/lib/http";
 import type { Lien, LienRole } from "@/lib/liens";
@@ -12,6 +13,7 @@ export const POST = (req: Request) =>
     const f = await req.formData();
     const db = await readDB(acct(user));
     if (!db.addons?.liens) return go(req, "/liens");
+    if (!can(user, "addMatters", db)) return go(req, "/liens?noPermission=1");
     const lastWorkDate = date(f.get("lastWorkDate"));
     const amount = Number(text(f.get("amount")).replace(/[$,]/g, ""));
     if (!lastWorkDate || !text(f.get("owner")) || !(amount > 0)) {
@@ -35,6 +37,12 @@ export const POST = (req: Request) =>
       strata: f.get("strata") === "on",
     };
     (db.liens ??= []).push(lien);
+    const assignee = chosenAssignee(user, f.has("assignee") ? text(f.get("assignee")) : null, can(user, "assignMatters", db));
+    try {
+      await assignMatter(db, acct(user), lien.id, assignee, user, lienLabel(lien), req);
+    } catch (e) {
+      return go(req, `/liens?error=${encodeURIComponent((e as Error).message)}#new`);
+    }
     await writeDB(acct(user), db);
     return go(req, `/liens/${lien.id}`);
   });

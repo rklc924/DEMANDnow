@@ -4,7 +4,7 @@ The Builders Lien add-on is for contractors, subtrades, workers and suppliers in
 
 # Turn it on
 
-Open **Liens** in the menu and click **Turn on Builders Liens**. The deadline tools are included in your plan. You only pay when we file a lien or pull a title search for you.
+An admin opens **Liens** in the menu and clicks **Turn on Builders Liens**. The deadline tools are included in your plan. You only pay when we file a lien or pull a title search for you.
 
 # Start a lien
 
@@ -15,7 +15,7 @@ Under **Start a lien**, fill in:
 - The **property**: its address, PID and legal description from the title search, and the **registered owner exactly as on title**. Tick the box if it's a strata property.
 - The **critical dates**: the last day you worked or supplied materials (required), and, if you know them, the date a certificate of completion was filed and the date the head contract was completed, abandoned or terminated.
 
-Click **Work out my deadlines**. Your liens are listed with the most urgent deadline at the top.
+Under **Assigned to**, choose who will look after the lien. Then click **Work out my deadlines**. Your liens are listed with the most urgent deadline at the top.
 
 # Your deadlines
 

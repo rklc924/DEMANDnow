@@ -312,3 +312,5 @@ details > summary { cursor: pointer; padding: 6px 0; }
 @media (max-width: 800px) { header.top nav { flex-wrap: wrap; gap: 4px 14px; } }
 @media (max-width: 800px) { header.top .row { flex-wrap: wrap; } header.top nav a { white-space: nowrap; } .card > table, .card table { display: block; overflow-x: auto; } }
 @media (max-width: 800px) { footer.foot .wrap { flex-wrap: wrap; row-gap: 6px; } }
+table.access td:nth-child(2), table.access td:nth-child(3), table.access th:nth-child(2), table.access th:nth-child(3) { text-align: center; width: 110px; }
+table.access input[type="checkbox"] { width: auto; }

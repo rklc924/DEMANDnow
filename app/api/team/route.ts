@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { acct, createUser, isAdmin, orgUsers, readUser, saveUser, type Permission, type Role, type User } from "@/lib/auth";
+import { MEMBER_DEFAULTS, PERMISSIONS, acct, createUser, isAdmin, orgDefault, orgUsers, readUser, saveUser, type Role, type User } from "@/lib/auth";
 import { deleteDoc } from "@/lib/db";
 import { appUrl, sendEmail } from "@/lib/email";
 import { go, withUser } from "@/lib/http";
@@ -7,7 +7,6 @@ import { logActivity, readDB, writeDB } from "@/lib/store";
 import { scryptSync } from "crypto";
 
 const str = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
-const PERMS: Permission[] = ["sendLetters", "orderServices", "manageInvoices"];
 
 // Team management for an organization's admin: add, change role, restrict, reset password, disable, delete.
 export const POST = (req: Request) =>
@@ -29,6 +28,15 @@ export const POST = (req: Request) =>
       logActivity(db, admin, `Renamed the organization to ${name}`);
       await writeDB(org, db);
       return back("ok=" + encodeURIComponent("Organization name saved."));
+    }
+
+    if (action === "defaults") {
+      // What every regular user can do, unless set differently for one user. Only differences from the built-in defaults are stored.
+      const next = Object.fromEntries(PERMISSIONS.map((p) => [p.key, f.get(p.key) === "on"]).filter(([k, v]) => MEMBER_DEFAULTS[k as keyof typeof MEMBER_DEFAULTS] !== v));
+      db.memberDefaults = next;
+      logActivity(db, admin, "Changed what regular users can do");
+      await writeDB(org, db);
+      return back("ok=" + encodeURIComponent("Saved. This applies to every regular user, except where you've set something different for one person."));
     }
 
     if (action === "add") {
@@ -66,7 +74,8 @@ export const POST = (req: Request) =>
       await saveUser(target);
       logActivity(db, admin, `Made ${label} ${role === "admin" ? "an admin" : "a regular user"}`);
     } else if (action === "perms") {
-      target.permissions = Object.fromEntries(PERMS.map((p) => [p, f.get(p) === "on"]));
+      // Keep only the settings that differ from the organization's defaults, so later default changes still reach this user.
+      target.permissions = Object.fromEntries(PERMISSIONS.map((p) => [p.key, f.get(p.key) === "on"]).filter(([k, v]) => orgDefault(db, k as keyof typeof MEMBER_DEFAULTS) !== v));
       await saveUser(target);
       logActivity(db, admin, `Changed what ${label} can do`);
     } else if (action === "password") {

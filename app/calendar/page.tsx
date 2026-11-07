@@ -1,4 +1,5 @@
 import { requireUser, acct } from "@/lib/auth";
+import { visibleTo } from "@/lib/matters";
 import { buildEvents, type CalEvent } from "@/lib/calendar";
 import { money } from "@/lib/aging";
 import { loadRows } from "@/lib/ledger";
@@ -12,7 +13,7 @@ type View = "all" | "overdue" | "upcoming" | "collected";
 
 export default async function CalendarPage({ searchParams }: { searchParams: { m?: string; view?: string } }) {
   const user = await requireUser();
-  const { db, rows } = await loadRows(acct(user));
+  const { db, rows } = await loadRows(acct(user)).then((all) => visibleTo(user, all.db, all.rows));
   const todayIso = new Date().toISOString().slice(0, 10);
   const events = buildEvents(db, rows, todayIso);
 

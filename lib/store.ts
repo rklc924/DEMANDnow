@@ -135,7 +135,14 @@ export interface DB {
   matterSource?: Record<string, string>;
   /** Who did what, newest last (capped). Admins see it on the Team page. */
   activity?: { at: string; userId: string; name: string; action: string; link?: string }[];
+  /** Who each matter is assigned to: matter id (invoice id or lien id) to user id. */
+  owners?: Record<string, string>;
+  /** What regular users can do in this organization, where the admin changed the built-in defaults (lib/auth.ts). */
+  memberDefaults?: import("./auth").PermissionMap;
 }
+
+/** The user a matter is assigned to, if anyone. */
+export const matterOwner = (db: DB, matterId: string): string | undefined => db.owners?.[matterId];
 
 /** Records an action by a team member. Call before writeDB. */
 export function logActivity(db: DB, user: { id: string; name: string; email: string }, action: string, link?: string) {

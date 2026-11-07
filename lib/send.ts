@@ -2,6 +2,7 @@ import { loadRows, type Row } from "./ledger";
 import { renderLetterPdf } from "./letters/pdf";
 import { buildDemandLetter } from "./letters/template";
 import { addCalendarEvent, sendFromMailbox } from "./mailbox";
+import { notifyOwner, rowLabel } from "./matters";
 import { followUps } from "./reminders";
 import { readUpload, writeDB, type DB, type LetterRecord } from "./store";
 import { assertCanSend, usage } from "./usage";
@@ -87,5 +88,6 @@ export async function runAutoSend(accountId: string): Promise<{ sent: string[]; 
   const sending = due.slice(0, Number.isFinite(room) ? room : due.length);
   for (const r of sending) await deliver(db, r, "auto");
   await writeDB(accountId, db);
+  for (const r of sending) await notifyOwner(db, r.invoice.id, null, "Demand letter auto-sent", rowLabel(r));
   return { sent: sending.map((r) => r.invoice.number), held: due.length - sending.length };
 }

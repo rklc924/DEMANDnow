@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
-import { requireUser, acct } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { requireUser, acct, can, canSeeMatter } from "@/lib/auth";
+import { assignableUsers } from "@/lib/matters";
+import { AssignCard } from "../../assign";
 import { money } from "@/lib/aging";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, LIEN_STEPS, LIEN_TITLE_SEARCH_FEE, filingQuote, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
@@ -10,11 +12,14 @@ export const dynamic = "force-dynamic";
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86_400_000);
 
-export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string; noPermission?: string } }) {
+export default async function LienPage({ params, searchParams }: { params: { id: string }; searchParams: { saved?: string; ordered?: string; fileError?: string; title?: string; noPermission?: string; assigned?: string; assignError?: string } }) {
   const user = await requireUser();
   const db = await readDB(acct(user));
   const l = db.liens?.find((x) => x.id === params.id);
   if (!l) notFound();
+  if (!canSeeMatter(user, db, l.id)) redirect("/?noAccess=1");
+  const users = await assignableUsers(acct(user));
+  const mayOrder = can(user, "orderServices", db);
   const dates = lienDates(l);
   const fileBy = dates.find((d) => d.key === "file")!;
   const left = daysTo(fileBy.date);
@@ -31,6 +36,7 @@ export default async function LienPage({ params, searchParams }: { params: { id:
       {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
       <h1>Lien: {l.civicAddress || l.pid || "property"}</h1>
       <p className="sub">{money(l.amount)} owing · {LIEN_ROLE_LABEL[l.role]} · registered owner {l.owner}</p>
+      <AssignCard matterId={l.id} ownerId={db.owners?.[l.id]} me={user} users={users} canAssign={can(user, "assignMatters", db)} assigned={!!searchParams.assigned} error={searchParams.assignError} />
       {searchParams.saved && <div className="banner good">Dates saved. Deadlines updated below and in your calendar.</div>}
       {!l.filedDate && !l.satisfied && left < 0 && <div className="banner bad"><b>The filing deadline appears to have passed ({fmt(fileBy.date)}).</b> Send this to a lawyer today: there may still be other remedies, such as a trust claim or a debt action.</div>}
       {!l.filedDate && !l.satisfied && left >= 0 && left <= 10 && <div className="banner bad"><b>{left} days left to file your claim of lien</b> (by {fmt(fileBy.date)}). File as soon as possible.</div>}
@@ -115,8 +121,8 @@ export default async function LienPage({ params, searchParams }: { params: { id:
                 <label className="check"><input type="checkbox" name="titleSearch" defaultChecked /> <span>Add a post-registration title search (+${LIEN_TITLE_SEARCH_FEE} plus Land Title Office costs). Recommended: it confirms the lien is on title and shows what ranks ahead of you.</span></label>
                 {rushLate && <label className="check"><input type="checkbox" name="lateOk" /> <span>I understand it may be filed after the deadline</span></label>}
                 <div className="row" style={{ marginTop: 12 }}>
-                  <button className="btn" disabled={!hasForm5}>Order filing · charge my card</button>
-                  <span className="note">Charged to your card on file, plus applicable tax.</span>
+                  <button className="btn" disabled={!hasForm5 || !mayOrder}>Order filing · charge my card</button>
+                  <span className="note">{mayOrder ? "Charged to your card on file, plus applicable tax." : "Ask your admin to order this, or to give you access to paid services."}</span>
                 </div>
               </form>
             </>
@@ -131,6 +137,8 @@ export default async function LienPage({ params, searchParams }: { params: { id:
           <p>Filing the lien doesn't put you first in line. Mortgages and other charges registered before you usually get paid first if the property is sold. A <b>post-registration title search</b> confirms your lien is on the right title and shows everything ahead of it, so you know how much security you really have before spending money on a court action.</p>
           {l.titleSearchOrder ? (
             <p className="note"><span className="pill blue">Ordered {fmt(l.titleSearchOrder.orderedAt.slice(0, 10))}</span> We'll send it to you. Upload it under "Pull a post-registration title search" in the checklist.</p>
+          ) : !mayOrder ? (
+            <p className="note">Ask your admin to order the title search, or to give you access to paid services.</p>
           ) : (
             <form action={`/api/liens/${l.id}/file`} method="post" className="row">
               <input type="hidden" name="action" value="title" />

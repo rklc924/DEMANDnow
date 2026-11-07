@@ -5,7 +5,8 @@ Demand Now helps BC businesses collect overdue invoices. The software finds invo
 # 1. Create your account
 
 1. Go to [Sign up](/signup) and enter your name, your business name (as it should appear on your letters), your work email and a password of at least 10 characters.
-2. Check your inbox for a confirmation email and click the link. You can look around before you confirm, but you can't send demand letters until your email is confirmed. If the email doesn't arrive, use **Resend the link** in the yellow banner on the Receivables page.
+2. The person who signs up becomes the **Admin** for your organization. Once you're set up, add colleagues as regular users from the **Team** page (see [Your team and user roles](/help/team)).
+3. Check your inbox for a confirmation email and click the link. You can look around before you confirm, but you can't send demand letters until your email is confirmed. If the email doesn't arrive, use **Resend the link** in the yellow banner on the Receivables page.
 
 # 2. Add a card on file
 

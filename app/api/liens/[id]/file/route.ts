@@ -1,4 +1,5 @@
-import { acct, can } from "@/lib/auth";
+import { acct, can, canSeeMatter } from "@/lib/auth";
+import { lienLabel, notifyOwner } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { appUrl, sendEmail } from "@/lib/email";
@@ -11,11 +12,12 @@ import { chargeCard } from "@/lib/stripe";
 // Charges $250 (+$100 rush) now; LTSA filing fees are charged at cost once filed.
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
-    if (!can(user, "orderServices")) return go(req, `/liens/${params.id}?noPermission=1`);
     const back = (q: string) => go(req, `/liens/${params.id}?${q}#filing`);
     const err = (m: string) => back("fileError=" + encodeURIComponent(m));
     const f = await req.formData();
     const db = await readDB(acct(user));
+    if (!canSeeMatter(user, db, params.id)) return go(req, "/?noAccess=1");
+    if (!can(user, "orderServices", db)) return go(req, `/liens/${params.id}?noPermission=1`);
     const lien = db.liens?.find((l) => l.id === params.id);
     if (!lien) return go(req, "/liens");
     const where = lien.civicAddress || `PID ${lien.pid}`;
@@ -37,6 +39,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
         subject: `Post-registration title search ${lien.id}: ${where}`,
         text: `Pull a post-registration title search.\n\nPID: ${lien.pid}\nLegal description: ${lien.legalDescription}\nRegistered owner: ${lien.owner}\nLien filed: ${lien.filedDate ?? "(not recorded yet)"}\n\nClient: ${db.company.name}, ${db.company.email || user.email}\nPaid ${money(LIEN_TITLE_SEARCH_FEE)}. Charge the LTSA costs at cost. Email the search to the client.`,
       });
+      await notifyOwner(db, lien.id, user, "Ordered a post-registration title search", lienLabel(lien), req);
       return back("title=1");
     }
     if (lien.filing) return back("");
@@ -103,5 +106,6 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       subject: `We're filing your builders lien: ${where}`,
       text: `We've received your Claim of Lien for ${where} and will file it by hand at the Land Title Office.\n\nYou'll get proof of filing by ${proofBy}${rush ? " (rush)" : ""}.\n\n${withTitle ? "With the proof of filing you'll also get a post-registration title search showing where your lien ranks.\n\n" : ""}Charged to your card on file: ${money(fee)} ($${LIEN_FILING_FEE} filing service${rush ? ` + $${LIEN_RUSH_FEE} rush` : ""}${withTitle ? ` + $${LIEN_TITLE_SEARCH_FEE} title search` : ""}), plus applicable tax. The Land Title Office's filing fees are charged at cost once it's filed.\n\nTrack it here: ${appUrl(req)}/liens/${lien.id}\n\nDemand Now`,
     }).catch(() => undefined);
+    await notifyOwner(db, lien.id, user, "Ordered the lien filing", lienLabel(lien), req);
     return back("ordered=1");
   });

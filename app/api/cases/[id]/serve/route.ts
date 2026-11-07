@@ -1,4 +1,5 @@
-import { acct, can } from "@/lib/auth";
+import { acct, can, canSeeMatter } from "@/lib/auth";
+import { notifyOwner, rowLabel } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { NOTICE_OF_CLAIM_PACKAGE } from "@/lib/certificate";
@@ -13,7 +14,9 @@ import { chargeCard } from "@/lib/stripe";
 // Book a process server for a matter's starting document.
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
-    if (!can(user, "orderServices")) return go(req, `/cases/${params.id}?noPermission=1#service`);
+    const org = await readDB(acct(user));
+    if (!canSeeMatter(user, org, params.id)) return go(req, "/?noAccess=1");
+    if (!can(user, "orderServices", org)) return go(req, `/cases/${params.id}?noPermission=1#service`);
     const back = (q: string) => go(req, `/cases/${params.id}?${q}#service`);
     const f = await req.formData();
     const { db, row } = await loadRow(acct(user), params.id);
@@ -93,6 +96,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     logActivity(db, user, `Booked a process server for ${serveOn}`, `/cases/${row.invoice.id}#service`);
     record();
     await writeDB(acct(user), db);
+    await notifyOwner(db, row.invoice.id, user, `Booked a process server for ${serveOn}`, rowLabel(row), req);
 
     await sendEmail({
       to: job.clientEmail,

@@ -18,7 +18,7 @@ Record the payment in your accounting system so the balance owing is right. For 
 # Troubleshooting
 
 ### I can't send a letter.
-The message on the matter page tells you why. Usually it's one of these: your email address isn't confirmed (use **Resend the link** on the Receivables page), you don't have an active plan (choose one in [Billing](/help/billing)), or you've used this month's letters on Standard. On a team account, your admin may also have switched off sending for your login.
+The message on the matter page tells you why. Usually it's one of these: your email address isn't confirmed (use **Resend the link** on the Receivables page), you don't have an active plan (choose one in [Billing](/help/billing)), or you've used this month's letters on Standard. On a team account, your admin may also have switched off sending for regular users or for your login, or the matter may not be assigned to you.
 
 ### I keep being sent to "Add a card".
 Every account needs a card on file before it can use the app. Add one on that page and you can carry on.

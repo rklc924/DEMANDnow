@@ -1,4 +1,5 @@
-import { acct, can } from "@/lib/auth";
+import { acct, can, canSeeMatter } from "@/lib/auth";
+import { notifyOwner, rowLabel } from "@/lib/matters";
 import { NextResponse } from "next/server";
 import { go, withUser } from "@/lib/http";
 import { loadRow } from "@/lib/ledger";
@@ -14,7 +15,7 @@ type Ctx = { params: { id: string } };
 export const GET = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
     const { db, row } = await loadRow(acct(user), params.id);
-    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!row || !canSeeMatter(user, db, params.id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const sentOn = row.letter ? new Date(row.letter.sentAt) : new Date();
     const variant: LetterVariant = new URL(req.url).searchParams.get("variant") === "firm" ? "firm" : "company";
     const content = buildDemandLetter(row, db.company, db.settings.responseDays, sentOn, variant);
@@ -27,7 +28,9 @@ export const GET = (req: Request, { params }: Ctx) =>
 
 export const POST = (req: Request, { params }: Ctx) =>
   withUser(req, async (user) => {
-    if (!can(user, "sendLetters")) return go(req, `/cases/${params.id}?noPermission=1`);
+    const org = await readDB(acct(user));
+    if (!canSeeMatter(user, org, params.id)) return go(req, "/?noAccess=1");
+    if (!can(user, "sendLetters", org)) return go(req, `/cases/${params.id}?noPermission=1`);
     if (!user.emailVerifiedAt) {
       return go(req, `/cases/${params.id}?limit=${encodeURIComponent("Confirm your email address before sending letters. Check your inbox, or resend the link from Receivables.")}`);
     }
@@ -36,6 +39,8 @@ export const POST = (req: Request, { params }: Ctx) =>
       const db = await readDB(acct(user));
       logActivity(db, user, `Sent the demand letter`, `/cases/${params.id}`);
       await writeDB(acct(user), db);
+      const { row } = await loadRow(acct(user), params.id);
+      if (row) await notifyOwner(db, params.id, user, "Demand letter sent", rowLabel(row), req);
     } catch (e) {
       if (e instanceof PlanError) return go(req, `/cases/${params.id}?limit=${encodeURIComponent(e.message)}`);
       throw e;

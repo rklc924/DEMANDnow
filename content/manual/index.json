@@ -111,7 +111,7 @@
       "slug": "team",
       "group": "Your account",
       "title": "Your team and user roles",
-      "summary": "Invite colleagues as Admins or regular users and choose what each can do.",
+      "summary": "Invite colleagues, assign matters, see who is working on what and choose what regular users can do.",
       "routes": [
         "/team"
       ]

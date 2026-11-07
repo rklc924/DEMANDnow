@@ -1,4 +1,4 @@
-import { acct, can } from "@/lib/auth";
+import { acct, can, canSeeMatter } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { appUrl, sendEmail } from "@/lib/email";
@@ -19,6 +19,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const f = await req.formData();
     const { db, row } = await loadRow(acct(user), params.id);
     if (!row) return go(req, "/");
+    if (!canSeeMatter(user, db, params.id)) return go(req, "/?noAccess=1");
     const cid = row.customer.id;
     const parties = (db.parties ??= {});
     const fallbackType: PartyType = row.customer.kind === "business" ? "company" : "individual";
@@ -26,7 +27,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const action = str(f.get("action"));
 
     if (action === "order") {
-      if (!can(user, "orderServices")) return back("partyError=" + encodeURIComponent("Your admin hasn't given you access to order paid services."));
+      if (!can(user, "orderServices", db)) return back("partyError=" + encodeURIComponent("Your admin hasn't given you access to order paid services."));
       if (p.searchOrder) return back("party=ordered");
       const name = str(f.get("searchName")) || p.legalName || row.customer.name;
       try {

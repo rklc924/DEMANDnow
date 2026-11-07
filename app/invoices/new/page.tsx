@@ -1,4 +1,7 @@
-import { requireUser, acct } from "@/lib/auth";
+import { requireUser, acct, can } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { assignableUsers } from "@/lib/matters";
+import { AssigneeField } from "../../assign";
 import { readDB } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +11,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 export default async function NewInvoice({ searchParams }: { searchParams: { error?: string } }) {
   const user = await requireUser();
   const db = await readDB(acct(user));
+  if (!can(user, "addMatters", db)) redirect("/?noPermission=1");
+  const users = await assignableUsers(acct(user));
   const customers = (db.manual?.customers ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -66,6 +71,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: { err
             <input type="text" name="interestRate" inputMode="decimal" placeholder="e.g. 24" />
           </div>
         </div>
+        <div style={{ maxWidth: 360 }}><AssigneeField me={user} users={users} canAssign={can(user, "assignMatters", db)} /></div>
         <div className="row" style={{ marginTop: 16 }}><button className="btn">Add invoice</button></div>
       </form>
     </div>

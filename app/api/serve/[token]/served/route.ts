@@ -5,6 +5,7 @@ import { checkDocument } from "@/lib/doccheck";
 import { appUrl, sendEmail } from "@/lib/email";
 import { go } from "@/lib/http";
 import { loadRow } from "@/lib/ledger";
+import { notifyOwner, rowLabel } from "@/lib/matters";
 import { jobFromToken, saveJob } from "@/lib/service";
 import { writeDB, type DocCheck } from "@/lib/store";
 
@@ -56,6 +57,7 @@ export async function POST(req: Request, { params }: { params: { token: string }
       rec.servedAt = servedAt;
     }
     await writeDB(job.accountId, db);
+    await notifyOwner(db, row.invoice.id, null, `The process server reported ${job.serveOn} served on ${servedAt}`, rowLabel(row), req);
   }
   await sendEmail({
     to: job.clientEmail,
