@@ -1,14 +1,24 @@
 import { BUCKETS, money } from "@/lib/aging";
 import { getUser, requireUser, acct, can, isAdmin } from "@/lib/auth";
-import { assignableUsers, rowStage, visibleTo } from "@/lib/matters";
+import { assignableUsers, visibleTo } from "@/lib/matters";
 import { Landing } from "./landing";
 import { loadRows, type Row } from "@/lib/ledger";
 import { usage } from "@/lib/usage";
+import type { DB } from "@/lib/store";
+import { stageOf } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
-function status(r: Row) {
+function status(r: Row, db: DB) {
   if (r.paid) return <span className="pill good">Paid</span>;
+  const done = db.progress?.[r.invoice.id]?.done ?? [];
+  const part = r.collected > 0 ? <span className="pill warn">Part paid</span> : null;
+  // Once the checklist is under way, show the step the matter is on.
+  if (done.some((id) => id !== r.forum.steps[0]?.id)) {
+    const { current } = stageOf(r.forum.steps, done);
+    return <>{part} <span className="pill blue">{current ? `Step: ${current.title}` : "All steps done"}</span></>;
+  }
+  if (part) return part;
   if (r.daysToLimitation <= 0) return <span className="pill bad">Limitation passed</span>;
   if (r.letter) {
     const past = new Date(r.letter.deadline) < new Date();
@@ -33,7 +43,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
   const open = rows.filter((r) => !r.paid);
   const totals = BUCKETS.map((b) => {
     const rs = open.filter((r) => r.bucket === b);
-    return { b, n: rs.length, sum: rs.reduce((s, r) => s + r.invoice.amountDue, 0) };
+    return { b, n: rs.length, sum: rs.reduce((s, r) => s + r.balance, 0) };
   });
   const queue = rows.filter((r) => r.days >= db.settings.thresholdDays);
   const watching = rows.filter((r) => r.days < db.settings.thresholdDays && !r.paid);
@@ -110,10 +120,10 @@ export default async function Dashboard({ searchParams }: { searchParams: { auto
                 <td><a href={`/cases/${r.invoice.id}`}>{r.invoice.number}</a></td>
                 <td>{r.customer.name} {r.customer.kind === "consumer" && <span className="pill grey">consumer</span>}</td>
                 <td className="num">{r.days}</td>
-                <td className="num">{money(r.invoice.amountDue)}</td>
+                <td className="num">{money(r.paid ? r.invoice.amountDue : r.balance)}</td>
                 <td>{r.forum.name.replace(" (Provincial Court)", "").replace(" (lawyer hand-off)", "")}</td>
                 <td>{r.daysToLimitation > 0 ? `${r.daysToLimitation} days left` : "Expired"}</td>
-                <td>{status(r)}<div className="note">{rowStage(db, r)}</div></td>
+                <td>{status(r, db)}</td>
                 <td>{nameOf(db.owners?.[r.invoice.id])}</td>
                 <td><a className="btn small ghost" href={`/cases/${r.invoice.id}`}>{r.letter ? "Next steps" : "Review letter"}</a></td>
               </tr>

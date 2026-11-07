@@ -47,6 +47,10 @@ export interface EnforcementStep {
   verify?: boolean;
   /** Steps that depend on something outside the app ask the client to upload proof, which is then checked. */
   upload?: StepUpload;
+  /** This step starts the claim (files it with the court or tribunal). Once it's ticked, the matter stays on its route. */
+  startsClaim?: boolean;
+  /** A reminder created when this step becomes the current one, `days` after the previous step was ticked. */
+  followUp?: { days: number; title: string; detail: string };
 }
 
 export interface StepUpload {

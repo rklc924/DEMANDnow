@@ -18,7 +18,38 @@ The card also shows the **claim amount** (with contractual interest if your invo
 
 # The checklist
 
-Below the letter is a **Checklist** for the matter's route, with a progress bar. Tick each step as you finish it. The first step ("Send the demand letter and let the deadline pass") ticks itself once the deadline passes.
+Below the letter is a **Checklist** for the matter's route, with a progress bar. The checklist runs the matter: tick each step as you finish it, and Demand Now moves the matter on to the next step.
+
+- The step you're on is highlighted in yellow and marked **Current step**. The line above the list shows it too, with when its reminder is due.
+- When you tick a step, the reminders for that step are removed from Demand Now and from your connected calendar, and a reminder for the next step is added. For example, ticking **File a Notice of Claim** sets a reminder to serve it.
+- The first step ("Send the demand letter and let the deadline pass") ticks itself once the deadline passes.
+- If you tick a later step, any earlier step you left unticked is marked **Skipped**. That's normal when a step didn't happen, such as a settlement conference when the debtor never replied. Tick it if you did do it.
+- Ticked a step by mistake? Click the box again to untick it. The matter goes back to that step.
+- The **Receivables** dashboard shows the step each matter is on in the **Status** column.
+
+Anyone on your team can tick steps. Every tick is recorded in the activity log on the **Team** page.
+
+# Funds collected
+
+The last box on every checklist is **Funds collected**. Use it whenever the debtor pays you anything, at any step.
+
+1. Click **Record funds collected**.
+2. Enter the **Amount received** and the **Date received**. You can also add how it was paid and a note.
+3. Tick **Paid in full** if this payment settles the debt. Tick it too if you agreed to settle for less than the full amount.
+4. Click **Save payment**.
+
+What happens next depends on the payment:
+
+- **Paid in full** (or the payments add up to the full amount): the matter closes. The checklist locks, the process server booking and Notice of Claim cards are removed, and every upcoming reminder is deleted, including the ones in your connected calendar. The matter shows as **Paid** on the dashboard and **Collected** on the Calendar.
+- **A part payment**: the matter stays open. The checklist shows the amount collected and the balance still owing, the dashboard shows **Part paid**, and the Notice of Claim card claims the balance. If you haven't started a claim yet, Demand Now routes the matter by the balance, so a balance under {{CRT_MAX}} moves to the CRT. Once you've ticked a step after the demand letter, the matter stays on its route.
+
+> **Tip:** In BC, a part payment can restart the two-year limitation period. Check with a lawyer before relying on that.
+
+The **Mark paid** button next to the demand letter does the same as recording the full balance as paid today.
+
+You need permission to "Add, delete and mark invoices paid" to record payments. Admins always have it.
+
+**Reopening a closed matter.** If a payment bounces or a matter was closed by mistake, an Admin can click **Reopen matter** under Funds collected, or click **Remove** next to a payment. Reopening unlocks the checklist. Payments you didn't remove stay on record.
 
 **Small Claims checklist:**
 

@@ -3,6 +3,7 @@ import { appUrl, sendEmail } from "./email";
 import type { Row } from "./ledger";
 import { LIEN_STEPS, type Lien } from "./liens";
 import { logActivity, matterOwner, type DB } from "./store";
+import { stageOf } from "./workflow";
 
 // Matter assignment and keeping the assigned user up to date.
 // Every matter (an invoice or a lien) can be assigned to one user in the organization (DB.owners).
@@ -80,22 +81,24 @@ export function chosenAssignee(user: User, picked: string | null, canAssign: boo
 export const rowLabel = (r: Row) => `invoice ${r.invoice.number} (${r.customer.name})`;
 export const lienLabel = (l: Lien) => `the lien on ${l.civicAddress || l.pid || "the property"}`;
 
-/** Where a demand matter is up to, in a few words. */
+/** Where a demand matter is up to, in a few words. Follows the checklist workflow (lib/workflow.ts). */
 export function rowStage(db: DB, r: Row): string {
   if (r.paid) return "Paid";
   const done = new Set(db.progress?.[r.invoice.id]?.done ?? []);
   const deadlinePassed = r.letter ? new Date(r.letter.deadline + "T23:59:59") < new Date() : false;
-  if (r.letter && deadlinePassed) done.add("demand");
-  if (!r.letter) return r.days >= db.settings.thresholdDays ? "Ready for a demand letter" : "Not yet overdue enough";
-  if (!deadlinePassed) return "Letter sent, waiting for payment";
-  const next = r.forum.steps.find((s) => !done.has(s.id));
-  return next ? `Next: ${next.title}` : "All steps done";
+  if (r.letter && deadlinePassed) done.add(r.forum.steps[0]?.id ?? "demand");
+  const started = [...done].some((id) => id !== r.forum.steps[0]?.id);
+  if (!started) {
+    if (!r.letter) return r.days >= db.settings.thresholdDays ? "Ready for a demand letter" : "Not yet overdue enough";
+    if (!deadlinePassed) return "Letter sent, waiting for payment";
+  }
+  const { current } = stageOf(r.forum.steps, done);
+  return current ? `Next: ${current.title}` : "All steps done";
 }
 
 export function lienStage(db: DB, l: Lien): string {
-  if (l.satisfied) return "Paid";
-  const done = new Set(db.progress?.[l.id]?.done ?? []);
-  const next = LIEN_STEPS.find((s) => !done.has(s.id));
-  return next ? `Next: ${next.title}` : "All steps done";
+  if (l.satisfied || db.progress?.[l.id]?.closedAt) return "Paid";
+  const done = [...(db.progress?.[l.id]?.done ?? []), ...(l.filedDate ? ["dates", "file"] : [])];
+  const { current } = stageOf(LIEN_STEPS, done);
+  return current ? `Next: ${current.title}` : "All steps done";
 }
-

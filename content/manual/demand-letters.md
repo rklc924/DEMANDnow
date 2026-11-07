@@ -49,7 +49,9 @@ On a team account, some buttons on this page only appear if your admin allows th
 
 # When they pay
 
-Click **Mark paid**. The workflow stops, no further reminders apply, and the matter shows as collected on your [Calendar](/help/calendar).
+If they paid the whole balance, click **Mark paid**. The matter closes, the workflow stops, upcoming reminders are removed, and the matter shows as collected on your [Calendar](/help/calendar).
+
+If they paid only part, or paid on a different day, use **Funds collected** at the bottom of the checklist instead. See [Funds collected](/help/enforcement#funds-collected).
 
 # Banners you may see
 

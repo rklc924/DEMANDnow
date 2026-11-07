@@ -52,6 +52,23 @@ export interface DocCheck {
 export interface CaseProgress {
   done: string[]; // step ids
   docs: DocCheck[];
+  /** Money received from the debtor after the matter opened, full or partial (lib/workflow.ts). */
+  payments?: Payment[];
+  /** Set when the funds were collected in full: the matter is closed and enforcement stops. */
+  closedAt?: string;
+  /** The route (forum id) the matter was on when the first step after the demand was ticked. It stays on that route
+   *  even if a part payment brings the balance under a threshold. */
+  forumId?: string;
+}
+
+export interface Payment {
+  id: string;
+  date: string; // YYYY-MM-DD the money was received
+  amount: number;
+  method?: string;
+  note?: string;
+  recordedAt: string;
+  recordedBy: string;
 }
 
 export type MailProvider = "microsoft" | "google";
@@ -76,6 +93,8 @@ export interface Reminder {
   title: string;
   detail: string;
   eventId?: string; // id in the connected calendar
+  /** The checklist step this reminder is about. Ticking that step (or a later one) removes it. */
+  stepId?: string;
 }
 
 export interface Subscription {

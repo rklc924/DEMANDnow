@@ -21,6 +21,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const f = await req.formData();
     const { db, row } = await loadRow(acct(user), params.id);
     const svc = row?.forum.service;
+    if (row?.paid) return back("serveError=" + encodeURIComponent("This matter is closed because the funds were collected."));
     if (!row || !svc) return back("serveError=" + encodeURIComponent("Service booking isn't available for this matter."));
 
     const area = svc.serverFees.fees.find((x) => x.id === String(f.get("area")) && !x.addOn);

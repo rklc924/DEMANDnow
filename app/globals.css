@@ -314,3 +314,18 @@ details > summary { cursor: pointer; padding: 6px 0; }
 @media (max-width: 800px) { footer.foot .wrap { flex-wrap: wrap; row-gap: 6px; } }
 table.access td:nth-child(2), table.access td:nth-child(3), table.access th:nth-child(2), table.access th:nth-child(3) { text-align: center; width: 110px; }
 table.access input[type="checkbox"] { width: auto; }
+
+/* Checklist workflow: current step, closed matters, funds collected */
+.stage { margin: 0 0 6px; font-size: 15px; }
+.stage.good { color: var(--good); font-weight: 600; }
+ol.checklist > li.current { background: #FFF8E1; border-left: 4px solid #FFC83D; padding-left: 10px; margin-left: -14px; }
+ol.checklist > li.collect { border-top: 2px solid var(--line); }
+ol.checklist > li.collect.done .t { text-decoration: none; color: var(--good); }
+ol.checklist.locked .d { opacity: 0.75; }
+.box.static { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; border: 2px solid #B9C4C1; background: #fff; color: #fff; font-weight: 700; cursor: default; }
+.box.static.on { background: var(--good); border-color: var(--good); }
+table.payments { width: 100%; margin-top: 8px; font-size: 14px; border-collapse: collapse; }
+table.payments td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.payments td.amt { font-weight: 600; white-space: nowrap; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; }
+.collect-form { margin-top: 8px; }

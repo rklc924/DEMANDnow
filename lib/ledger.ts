@@ -5,6 +5,7 @@ import { bucketFor, daysOverdue, type Bucket } from "./aging";
 import { getJurisdiction, limitationDate, routeForum } from "./jurisdictions";
 import type { Forum } from "./jurisdictions/types";
 import { readDB, type DB, type LetterRecord } from "./store";
+import { collectedOn } from "./workflow";
 
 export interface Row {
   invoice: Invoice;
@@ -16,6 +17,9 @@ export interface Row {
   limitation: string; // YYYY-MM-DD
   daysToLimitation: number;
   paid: boolean;
+  /** Money received after the matter opened, and what is still owing (lib/workflow.ts). */
+  collected: number;
+  balance: number;
 }
 
 const provider = sampleProvider; // phase 2: the unified accounting API connector
@@ -24,16 +28,21 @@ export function buildRow(db: DB, invoice: Invoice, customer: Customer, today = n
   const j = getJurisdiction(db.company.jurisdiction);
   const days = daysOverdue(invoice.dueDate, today);
   const lim = limitationDate(j, invoice.dueDate);
+  const { collected, balance } = collectedOn(db, invoice.id, invoice.amountDue);
+  // Route by what's still owing, until the claim is under way: then it stays where it was started.
+  const pinned = j.forums.find((f) => f.id === db.progress?.[invoice.id]?.forumId);
   return {
     invoice,
     customer,
     days,
     bucket: bucketFor(days),
     letter: db.letters.findLast((l) => l.invoiceId === invoice.id),
-    forum: routeForum(j, invoice.amountDue),
+    forum: pinned ?? routeForum(j, collected > 0 && balance > 0 ? balance : invoice.amountDue),
     limitation: lim.toISOString().slice(0, 10),
     daysToLimitation: Math.ceil((lim.getTime() - today.getTime()) / 86_400_000),
     paid: db.paidInvoiceIds.includes(invoice.id),
+    collected,
+    balance,
   };
 }
 

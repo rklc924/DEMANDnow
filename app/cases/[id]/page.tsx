@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { requireUser, acct, can, canSeeMatter } from "@/lib/auth";
+import { requireUser, acct, can, canSeeMatter, isAdmin } from "@/lib/auth";
 import { assignableUsers } from "@/lib/matters";
 import { AssignCard } from "../../assign";
 import { money } from "@/lib/aging";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const fmt = (iso: string) => new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 
-export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string; noPermission?: string; assigned?: string; assignError?: string } }) {
+export default async function CasePage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string; review?: string; limit?: string; served?: string; booked?: string; quote?: string; serveError?: string; verified?: string; party?: string; partyError?: string; noPermission?: string; assigned?: string; assignError?: string; ticked?: string; collected?: string; collectError?: string; closed?: string; reopened?: string } }) {
   const user = await requireUser();
   const { db, row } = await loadRow(acct(user), params.id);
   if (!row) notFound();
@@ -23,6 +23,14 @@ export default async function CasePage({ params, searchParams }: { params: { id:
   const deadlinePassed = letter ? new Date(letter.deadline + "T23:59:59") < new Date() : false;
   const reviewRequested = db.reviewRequests?.some((r) => r.invoiceId === invoice.id);
   const consumerNeedsReview = customer.kind === "consumer";
+  const progress = db.progress?.[invoice.id];
+  const collectMsg = searchParams.collectError
+    ? { kind: "bad" as const, text: searchParams.collectError }
+    : searchParams.collected === "part"
+      ? { kind: "good" as const, text: `Part payment saved. ${money(row.balance)} is still owing, and the checklist carries on for the balance.` }
+      : searchParams.reopened
+        ? { kind: "good" as const, text: "Matter reopened. The checklist is unlocked." }
+        : undefined;
   const reminders = (db.reminders ?? []).filter((r) => r.invoiceId === invoice.id && (!letter || r.id.startsWith(letter.id)));
 
   return (
@@ -30,12 +38,13 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       <p className="note"><a href="/">← Receivables</a></p>
       {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
       <h1>{invoice.number} · {customer.name}</h1>
-      <p className="sub">{money(invoice.amountDue)} · {row.days} days past due · {customer.kind} customer</p>
+      <p className="sub">{money(invoice.amountDue)}{row.collected > 0 && !row.paid ? ` · ${money(row.balance)} still owing` : ""} · {row.days} days past due · {customer.kind} customer</p>
       <AssignCard matterId={invoice.id} ownerId={db.owners?.[invoice.id]} me={user} users={users} canAssign={can(user, "assignMatters", db)} assigned={!!searchParams.assigned} error={searchParams.assignError} />
       {searchParams.sent && <div className="banner good">Demand letter sent{letter?.emailedTo ? ` by email to ${letter.emailedTo}` : ""}. Deadline to pay: {letter && fmt(letter.deadline)}.{db.mailbox?.addReminders ? " Follow-up reminders added to your calendar." : ""}</div>}
       {searchParams.limit && <div className="banner warn">{searchParams.limit} <a href="/billing">See plans</a></div>}
       {searchParams.review && <div className="banner good">Sent to the firm for review. A lawyer will contact you within one business day.</div>}
-      {row.paid && <div className="banner good">Marked paid. The workflow has stopped.</div>}
+      {row.paid && <div className="banner good">Funds collected in full{progress?.closedAt ? ` (closed ${fmt(progress.closedAt)})` : ""}. The matter is closed and the workflow has stopped: no more steps or reminders.</div>}
+      {searchParams.closed && <div className="banner warn">This matter is closed because the funds were collected. An admin can reopen it.</div>}
       {db.matterSource?.[invoice.id] && !letter && <div className="banner warn">Added from {db.matterSource[invoice.id]}. Check the debtor's legal name, address and the amount before you send the letter.</div>}
       {row.daysToLimitation <= 120 && row.daysToLimitation > 0 && (
         <div className="banner warn">Limitation date is close: {fmt(row.limitation)} ({row.daysToLimitation} days). A claim must be started before then.</div>
@@ -99,9 +108,28 @@ export default async function CasePage({ params, searchParams }: { params: { id:
       {Object.values(db.progress?.[invoice.id]?.docs ?? []).some((d) => d.status === "issues") && (
         <div className="banner bad">A document you uploaded has problems. See the red box in the checklist below.</div>
       )}
-      <CaseChecklist row={row} j={j} progress={db.progress?.[invoice.id]} autoDone={letter && deadlinePassed ? ["demand"] : []} />
-      {forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
-      <ServiceOptions
+      <CaseChecklist
+        row={row}
+        j={j}
+        progress={progress}
+        autoDone={letter && deadlinePassed ? [forum.steps[0].id] : []}
+        ticked={searchParams.ticked}
+        collect={{
+          action: `/api/cases/${invoice.id}/collected`,
+          reopenAction: `/api/cases/${invoice.id}/reopen`,
+          amountDue: invoice.amountDue,
+          collected: row.collected,
+          balance: row.balance,
+          payments: progress?.payments ?? [],
+          closed: row.paid,
+          closedAt: row.paid ? progress?.closedAt : undefined,
+          canRecord: can(user, "markPaid", db),
+          isAdmin: isAdmin(user),
+          message: collectMsg,
+        }}
+      />
+      {!row.paid && forum.id === "small-claims" && <ClaimSheet row={row} company={db.company} letterSent={letter?.sentAt} />}
+      {!row.paid && <ServiceOptions
         forum={forum}
         served={searchParams.served ?? db.servedDates?.[invoice.id]}
         action={`/cases/${params.id}#service`}
@@ -122,7 +150,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
                 ? { kind: "bad", text: searchParams.serveError }
                 : undefined,
         }}
-      />
+      />}
     </>
   );
 }

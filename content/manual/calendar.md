@@ -16,4 +16,6 @@ When you connect Outlook / Microsoft 365 or Gmail / Google in [Settings](/help/s
 3. **Filing check** (Small Claims only): 14 days after the deadline, a check that the Notice of Claim is filed and served.
 4. **Limitation warning:** 60 days before the limitation date.
 
+As you tick steps on a matter's checklist, the reminders keep up: a ticked step's reminders are removed and the next step's reminder is added. When you record the funds collected in full, every upcoming reminder for that matter is removed. See [The checklist](/help/enforcement#the-checklist).
+
 Each reminder links back to the matter. You can turn reminders off in Settings. If you use a different calendar app, use **Download .ics** on the matter page.

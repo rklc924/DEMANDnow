@@ -194,3 +194,15 @@ export async function addCalendarEvent(m: Mailbox, ev: { date: string; title: st
   })) as { id: string };
   return r.id;
 }
+
+/** Deletes a reminder from the connected calendar, e.g. once its step is ticked off or the debt is collected. */
+export async function removeCalendarEvent(m: Mailbox, eventId: string): Promise<void> {
+  if (m.demo || eventId.startsWith("demo-")) return;
+  const url =
+    m.provider === "microsoft"
+      ? `https://graph.microsoft.com/v1.0/me/events/${encodeURIComponent(eventId)}`
+      : `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`;
+  const res = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${await accessToken(m)}` } });
+  // Already gone (deleted by the user, or 410 Gone from Google) is fine.
+  if (!res.ok && res.status !== 404 && res.status !== 410) throw new Error(`${providerLabel(m.provider)} returned ${res.status}`);
+}

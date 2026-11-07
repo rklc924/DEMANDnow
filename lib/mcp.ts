@@ -7,6 +7,7 @@ import { baseUrl } from "./oauth";
 import { assignMatter, visibleTo } from "./matters";
 import { readDB, writeDB, type DB } from "./store";
 import { usage } from "./usage";
+import { stageOf } from "./workflow";
 
 // Demand Now MCP server (Model Context Protocol, Streamable HTTP, stateless JSON responses).
 // Claude (custom connectors / Connectors Directory) and ChatGPT (apps and connectors) call it at /mcp
@@ -65,13 +66,15 @@ function forumFacts(jurisdiction: string, amount: number, dueDate: string) {
 
 function rowSummary(r: Row, db: DB, base: string) {
   const done = db.progress?.[r.invoice.id]?.done ?? [];
-  const next = r.forum.steps.find((s) => !done.includes(s.id));
+  const next = stageOf(r.forum.steps, done).current;
   return {
     matter_id: r.invoice.id,
     debtor: r.customer.name,
     debtor_type: r.customer.kind === "consumer" ? "individual" : "business",
     invoice_number: r.invoice.number,
     amount_owing: r.invoice.amountDue,
+    amount_collected: r.collected,
+    balance_owing: r.paid ? 0 : r.balance,
     due_date: r.invoice.dueDate,
     days_overdue: r.days,
     aging_bucket: r.bucket,
