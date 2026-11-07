@@ -1,6 +1,7 @@
 import { getDoc, getFile, putDoc, putFile } from "./db";
 import type { Customer, Invoice } from "./accounting/types";
 import type { Lien } from "./liens";
+import type { Tenancy } from "./tenancy/types";
 import type { Interval, PlanId } from "./plans";
 
 // Minimal JSON file store for the prototype, one file per account. Swap for Postgres (Prisma)
@@ -123,7 +124,9 @@ export interface DB {
   /** The other party's confirmed legal name and address, by customer id (lib/party.ts). */
   parties?: Record<string, import("./party").Party>;
   liens?: Lien[];
-  /** Per matter (invoice id or lien id): ticked steps and documents uploaded for steps that need outside proof. */
+  /** Landlord section: rent arrears files for residential tenancies and commercial leases. */
+  tenancies?: Tenancy[];
+  /** Per matter (invoice id, lien id or tenancy id): ticked steps and documents uploaded for steps that need outside proof. */
   progress?: Record<string, CaseProgress>;
   /** Demo mode only: what would have been emailed. */
   outbox?: { to: string; subject: string; at: string }[];

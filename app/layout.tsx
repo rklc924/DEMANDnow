@@ -23,6 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <a href="/">Receivables</a>
                   <a href="/calendar">Calendar</a>
                   <a href="/liens">Liens</a>
+                  <a href="/landlord">Landlord</a>
                   {admin && <a href="/team">Team</a>}
                   {admin && <a href="/settings">Settings</a>}
                   {admin && <a href="/billing">Billing</a>}
