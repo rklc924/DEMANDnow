@@ -28,6 +28,18 @@ export interface User {
   disabled?: boolean;
   /** This user's own settings where they differ from the organization's defaults for regular users. */
   permissions?: PermissionMap;
+  /** Email reminder preferences (lib/notify.ts). Missing means the defaults: on, 3 days and 1 day before, every stage. */
+  notifications?: NotificationPrefs;
+}
+
+export interface NotificationPrefs {
+  email: boolean;
+  /** Days before a deadline to send a reminder. 0 = on the day. */
+  leadDays: number[];
+  /** Stage ids switched off (lib/deadlines). Stored as the ones turned off, so new stages start on. */
+  mutedStages: string[];
+  /** all: every matter in the organization. mine: only matters assigned to me. Missing: all for admins, mine for regular users. */
+  scope?: "all" | "mine";
 }
 
 // What regular users can do. Admins can always do everything.

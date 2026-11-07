@@ -71,7 +71,7 @@ export default async function CasePage({ params, searchParams }: { params: { id:
           {letter?.emailedTo && <p className="note">Emailed to {letter.emailedTo} from your {letter.emailedVia === "google" ? "Gmail" : letter.emailedVia === "microsoft" ? "Outlook" : "connected (demo)"} mailbox.</p>}
           {letter?.deliveryError && <div className="banner bad">Delivery problem: {letter.deliveryError}</div>}
           {letter && reminders.length > 0 && (
-            <p className="note">Follow-ups: {reminders.map((r) => `${fmt(r.date)} ${r.title.split(":")[0].split(" (")[0]}`).join(" · ")}. {reminders.some((r) => r.eventId) ? "Added to your calendar." : ""} <a href={`/api/reminders/${invoice.id}`}>Download .ics</a></p>
+            <p className="note">Follow-ups: {reminders.map((r) => `${fmt(r.date)} ${r.title.split(":")[0].split(" (")[0]}`).join(" · ")}. {reminders.some((r) => r.eventId) ? "Added to your calendar." : ""} <a href={`/api/reminders/${invoice.id}`}>Download .ics</a> · <a href="/notifications">Email reminders</a></p>
           )}
           <div className="row">
             <a className="btn ghost" href={`/api/letters/${invoice.id}`} target="_blank">Open PDF</a>

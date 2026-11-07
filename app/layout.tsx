@@ -22,6 +22,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <nav>
                   <a href="/">Receivables</a>
                   <a href="/calendar">Calendar</a>
+                  <a href="/notifications">Reminders</a>
                   <a href="/liens">Liens</a>
                   {admin && <a href="/team">Team</a>}
                   {admin && <a href="/settings">Settings</a>}

@@ -7,7 +7,7 @@ import { Pool } from "pg";
 // Each record is a JSON document keyed by id, which keeps the rest of the app unchanged while
 // giving us transactions, backups and multiple app instances in production.
 
-export type Table = "users" | "accounts" | "drafts" | "jobs" | "oauth";
+export type Table = "users" | "accounts" | "drafts" | "jobs" | "oauth" | "notifications";
 
 export const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), "data");
 const usePg = () => !!process.env.DATABASE_URL;
@@ -47,6 +47,11 @@ create table if not exists jobs (
   updated_at timestamptz not null default now()
 );
 create table if not exists oauth (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+create table if not exists notifications (
   id text primary key,
   data jsonb not null,
   updated_at timestamptz not null default now()

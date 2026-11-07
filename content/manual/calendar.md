@@ -1,4 +1,6 @@
-The **Calendar** page collects every date across your matters: payment deadlines, next steps, limitation dates, builders lien deadlines and collected debts.
+The **Calendar** page collects every date across your matters: payment deadlines, next steps, the Reply deadline after service, limitation dates, builders lien deadlines and collected debts.
+
+To get these dates by email as well, click **Email reminders**. See [Email reminders](/help/email-reminders).
 
 # Using the calendar
 

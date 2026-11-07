@@ -44,7 +44,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: { m
           <h1>Calendar</h1>
           <p className="sub">Every deadline, next step and limitation date across your matters.</p>
         </div>
-        <a className="btn ghost small" href="/api/reminders/all">Add all to my calendar (.ics)</a>
+        <div className="row" style={{ gap: 8 }}>
+          <a className="btn ghost small" href="/notifications">Email reminders</a>
+          <a className="btn ghost small" href="/api/reminders/all">Add all to my calendar (.ics)</a>
+        </div>
       </div>
 
       <div className="tiles">
@@ -91,7 +94,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: { m
                 <tr key={i} className={e.overdue ? "late" : ""}>
                   <td className="when">{fmt(e.date)}</td>
                   <td><span className={`chip ${e.kind} ${e.overdue ? "late" : ""}`}>{e.overdue ? "Overdue" : KIND_LABEL[e.kind]}</span></td>
-                  <td><a href={e.href}>{e.title}</a><div className="note">{e.who} · {e.amount}</div></td>
+                  <td><a href={e.href}>{e.title}</a><div className="note">{e.who}{e.amount ? ` · ${e.amount}` : ""}</div></td>
                 </tr>
               ))}
             </tbody>

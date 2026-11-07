@@ -64,6 +64,10 @@ Under **Users**, each regular user has the same list of switches, showing what t
 
 Your organization always keeps at least one admin, so the last admin can't be made a regular user, blocked or deleted.
 
+# Email reminders
+
+Each person chooses their own reminder emails under **Reminders**. Admins also decide whether reminders are on for the team, and whether regular users hear about every matter or only those assigned to them. See [Email reminders](/help/email-reminders).
+
 # Organization name
 
 Under **Organization**, change the name and click **Save name**. It's shown on letters and to your team.

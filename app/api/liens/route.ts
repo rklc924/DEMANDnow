@@ -3,7 +3,7 @@ import { assignMatter, chosenAssignee, lienLabel } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { go, withUser } from "@/lib/http";
 import type { Lien, LienRole } from "@/lib/liens";
-import { readDB, writeDB } from "@/lib/store";
+import { logActivity, readDB, writeDB } from "@/lib/store";
 
 const date = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
 const text = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
@@ -37,6 +37,7 @@ export const POST = (req: Request) =>
       strata: f.get("strata") === "on",
     };
     (db.liens ??= []).push(lien);
+    logActivity(db, user, `Started a builders lien for ${lien.civicAddress || lien.owner}`, `/liens/${lien.id}`);
     const assignee = chosenAssignee(user, f.has("assignee") ? text(f.get("assignee")) : null, can(user, "assignMatters", db));
     try {
       await assignMatter(db, acct(user), lien.id, assignee, user, lienLabel(lien), req);

@@ -1,5 +1,12 @@
 # Render Blueprint: New > Blueprint > pick this repo > Apply.
-# Creates the web service and a managed Postgres database (daily backups on paid plans).
+# Creates the web service, the daily reminder-email cron job and a managed Postgres database (daily backups on paid plans).
+envVarGroups:
+  # Shared by the web service and the cron job so the cron job can call /api/cron/reminders.
+  - name: demand-now-cron
+    envVars:
+      - key: CRON_SECRET
+        generateValue: true
+
 databases:
   - name: demand-now-db
     plan: basic-256mb
@@ -23,6 +30,7 @@ services:
         fromDatabase:
           name: demand-now-db
           property: connectionString
+      - fromGroup: demand-now-cron
       - key: SESSION_SECRET
         generateValue: true
       - key: ENCRYPTION_KEY
@@ -67,4 +75,26 @@ services:
       - key: LEGAL_ENTITY_NAME
         sync: false
       - key: SUPPORT_EMAIL
+        sync: false
+
+  # Daily reminder emails (deadlines 3 days and 1 day ahead, and new steps). 15:00 UTC is 7 or 8 AM in BC.
+  # It only calls the web service, which does the work and sends through Resend (RESEND_API_KEY on the web service).
+  - type: cron
+    name: demand-now-reminders
+    runtime: node
+    plan: starter
+    region: oregon
+    schedule: "0 15 * * *"
+    buildCommand: echo "No build needed"
+    startCommand: node scripts/send-reminders.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - fromGroup: demand-now-cron
+      - key: WEB_HOSTPORT
+        fromService:
+          type: web
+          name: demand-now
+          property: hostport
+      - key: APP_URL
         sync: false

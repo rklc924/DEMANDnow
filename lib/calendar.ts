@@ -1,4 +1,5 @@
 import { money } from "./aging";
+import { collectDeadlines } from "./deadlines";
 import type { Row } from "./ledger";
 import { lienDates } from "./liens";
 import type { DB } from "./store";
@@ -46,6 +47,13 @@ export function buildEvents(db: DB, rows: Row[], today = new Date().toISOString(
       if (d.done) continue;
       out.push({ ...base, date: d.date, kind: "lien", title: `Lien: ${d.label}`, overdue: d.date < today });
     }
+  }
+  // Dates from the deadline sources that the sections above don't already show (e.g. the Reply deadline after
+  // service, and any matter types added later).
+  for (const d of collectDeadlines(db, rows, today)) {
+    if (!d.calendar) continue;
+    const r = byInvoice.get(d.href.split("/").pop() ?? "");
+    out.push({ date: d.date, kind: "followup", title: d.title, invoiceId: d.key, href: d.href, who: d.who, amount: r ? money(r.invoice.amountDue) : "", overdue: d.date < today });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }

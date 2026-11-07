@@ -158,6 +158,15 @@ export interface DB {
   owners?: Record<string, string>;
   /** What regular users can do in this organization, where the admin changed the built-in defaults (lib/auth.ts). */
   memberDefaults?: import("./auth").PermissionMap;
+  /** Organization-wide email reminder rules, set by an admin (lib/notify.ts). */
+  reminderSettings?: ReminderSettings;
+}
+
+export interface ReminderSettings {
+  /** Off stops reminder emails for everyone in the organization. */
+  enabled: boolean;
+  /** assigned: regular users are only reminded about matters assigned to them. all: about every matter. */
+  memberScope: "assigned" | "all";
 }
 
 /** The user a matter is assigned to, if anyone. */
@@ -168,6 +177,8 @@ export function logActivity(db: DB, user: { id: string; name: string; email: str
   (db.activity ??= []).push({ at: new Date().toISOString(), userId: user.id, name: user.name || user.email, action, link });
   if (db.activity.length > 500) db.activity = db.activity.slice(-500);
 }
+
+export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { enabled: true, memberScope: "assigned" };
 
 export { DATA_DIR } from "./db";
 

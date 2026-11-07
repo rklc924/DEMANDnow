@@ -60,6 +60,15 @@
       ]
     },
     {
+      "slug": "email-reminders",
+      "group": "Everyday use",
+      "title": "Email reminders",
+      "summary": "Emails about the next step on each matter, and reminders 3 days and 1 day before each deadline.",
+      "routes": [
+        "/notifications"
+      ]
+    },
+    {
       "slug": "builders-liens",
       "group": "Add-ons",
       "title": "Builders liens",
