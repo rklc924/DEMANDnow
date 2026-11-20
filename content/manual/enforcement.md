@@ -47,7 +47,7 @@ What happens next depends on the payment:
 
 The **Mark paid** button next to the demand letter does the same as recording the full balance as paid today.
 
-You need permission to "Add, delete and mark invoices paid" to record payments. Admins always have it.
+On a team account, you need the "Mark invoices paid and record funds collected" permission to record payments, and you can only record them on matters you can see. Admins always can. If someone else records a payment on a matter assigned to you, you get an email.
 
 **Reopening a closed matter.** If a payment bounces or a matter was closed by mistake, an Admin can click **Reopen matter** under Funds collected, or click **Remove** next to a payment. Reopening unlocks the checklist. Payments you didn't remove stay on record.
 

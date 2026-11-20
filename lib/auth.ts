@@ -47,7 +47,7 @@ export const PERMISSIONS: { key: Permission; label: string; default: boolean }[]
   { key: "seeAllMatters", label: "See every matter, not just the ones assigned to them", default: false },
   { key: "addMatters", label: "Add invoices and liens", default: true },
   { key: "sendLetters", label: "Send demand letters", default: true },
-  { key: "markPaid", label: "Mark invoices paid", default: true },
+  { key: "markPaid", label: "Mark invoices paid and record funds collected", default: true },
   { key: "deleteInvoices", label: "Delete invoices", default: false },
   { key: "assignMatters", label: "Assign and reassign matters", default: false },
   { key: "orderServices", label: "Order paid services (process servers, lien filings, searches)", default: false },

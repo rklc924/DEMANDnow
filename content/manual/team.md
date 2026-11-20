@@ -41,7 +41,7 @@ The **What regular users can do** table on the Team page sets the rules for ever
 | See every matter, not just the ones assigned to them | Off |
 | Add invoices and liens | On |
 | Send demand letters | On |
-| Mark invoices paid | On |
+| Mark invoices paid and record funds collected | On |
 | Delete invoices | Off |
 | Assign and reassign matters | Off |
 | Order paid services (process servers, lien filings, searches) | Off |
