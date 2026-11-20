@@ -51,7 +51,7 @@ export const demandSource: DeadlineSource = {
           kind: "deadline",
           date: letter.deadline,
           title: `Payment deadline: ${who}, ${inv}`,
-          action: "This is the deadline to pay given in your demand letter. If you've been paid, mark the invoice paid so the reminders stop.",
+          action: "This is the deadline to pay given in your demand letter. If you've been paid, click Mark paid or record it under Funds collected so the reminders stop.",
         });
         if (!claimStarted) {
           out.push({
