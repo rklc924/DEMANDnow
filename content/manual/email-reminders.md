@@ -39,10 +39,10 @@ Reminder emails go only to a confirmed email address, and only while your organi
 Admins see **Team reminder settings** on the same page:
 
 - **Send reminder emails to people on this team** turns reminders on or off for everyone.
-- **Regular users are reminded about** either **Only the matters assigned to them** or **Every matter**. With **Every matter**, each person can still narrow it to their own.
+- **Regular users are reminded about** either **Only the matters assigned to them** or **Every matter**. With **Every matter**, each person can still narrow it to their own. Either way, nobody is reminded about a matter they aren't allowed to see. A regular user only sees every matter if the "See every matter" permission is on for them on the [Team](/help/team) page.
 - Click **Save team settings**.
 
-Each matter is assigned to the first person who works on it, such as by adding the invoice or sending the letter. Admins always get reminders for matters nobody is assigned to, or whose assigned user has been blocked or deleted, so nothing is missed.
+Each matter is assigned to the person chosen when it was added, and an admin (or anyone allowed to assign matters) can change that from the matter's page. See [Your team and user roles](/help/team). Admins always get reminders for matters nobody is assigned to, or whose assigned user has been blocked or deleted, so nothing is missed.
 
 **Who gets reminders** shows each person on your team and whether they're getting reminders. See [Your team and user roles](/help/team).
 

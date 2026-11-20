@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { acct, isAdmin, orgUsers, readUser, saveUser, type NotificationPrefs, type User } from "./auth";
+import { acct, canSeeMatter, isAdmin, orgUsers, readUser, saveUser, type NotificationPrefs, type User } from "./auth";
 import { getDoc, listDocs, putDoc } from "./db";
 import { addDays, collectDeadlines, todayPacific, type Deadline } from "./deadlines";
 import { publicOrigin } from "./origin";
@@ -40,8 +40,10 @@ export function scopeFor(u: User, db: DB): "all" | "mine" {
 
 /** activeIds: everyone in the organization who can still log in. A matter whose owner is gone or blocked goes to the admins. */
 export function forUser(deadlines: Deadline[], u: User, db: DB, activeIds: Set<string>): Deadline[] {
-  if (scopeFor(u, db) === "all") return deadlines;
-  return deadlines.filter((d) => {
+  // Never remind anyone about a matter they can't open (team roles: regular users see only their own matters unless allowed).
+  const visible = deadlines.filter((d) => canSeeMatter(u, db, d.matterId));
+  if (scopeFor(u, db) === "all") return visible;
+  return visible.filter((d) => {
     const owner = matterOwner(db, d.matterId);
     if (owner && activeIds.has(owner)) return owner === u.id;
     return isAdmin(u);
