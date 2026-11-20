@@ -8,7 +8,7 @@ export interface Attachment {
   content: Uint8Array;
 }
 
-export async function sendEmail(msg: { to: string; subject: string; text: string; attachments?: Attachment[]; replyTo?: string }) {
+export async function sendEmail(msg: { to: string; subject: string; text: string; html?: string; attachments?: Attachment[]; replyTo?: string; headers?: Record<string, string> }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.log(`[email:dev] to=${msg.to} subject="${msg.subject}" attachments=${msg.attachments?.length ?? 0}\n${msg.text}`);
@@ -22,7 +22,9 @@ export async function sendEmail(msg: { to: string; subject: string; text: string
       to: [msg.to],
       subject: msg.subject,
       text: msg.text,
+      html: msg.html,
       reply_to: msg.replyTo,
+      headers: msg.headers,
       attachments: msg.attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content).toString("base64") })),
     }),
   });

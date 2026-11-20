@@ -1,4 +1,4 @@
-import { acct } from "@/lib/auth";
+import { acct, canSeeMatter } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { NOTICE_OF_CLAIM_PACKAGE, certificateOfServicePdf } from "@/lib/certificate";
 import { withUser } from "@/lib/http";
@@ -8,7 +8,7 @@ import { loadRow } from "@/lib/ledger";
 export const GET = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
     const { db, row } = await loadRow(acct(user), params.id);
-    if (!row) return new NextResponse("Not found", { status: 404 });
+    if (!row || !canSeeMatter(user, db, params.id)) return new NextResponse("Not found", { status: 404 });
     const kind = new URL(req.url).searchParams.get("kind") === "individual" ? "individual" : "company";
     const bytes = await certificateOfServicePdf({
       claimant: db.company.name,

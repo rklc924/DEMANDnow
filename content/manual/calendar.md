@@ -1,4 +1,6 @@
-The **Calendar** page collects every date across your matters: payment deadlines, next steps, limitation dates, builders lien deadlines and collected debts.
+The **Calendar** page collects every date across your matters: payment deadlines, next steps, the Reply deadline after service, limitation dates, builders lien deadlines and collected debts.
+
+To get these dates by email as well, click **Email reminders**. See [Email reminders](/help/email-reminders).
 
 # Using the calendar
 
@@ -15,5 +17,7 @@ When you connect Outlook / Microsoft 365 or Gmail / Google in [Settings](/help/s
 2. **Next step:** the day after, a reminder to start the claim, or to send the file to a lawyer for larger debts.
 3. **Filing check** (Small Claims only): 14 days after the deadline, a check that the Notice of Claim is filed and served.
 4. **Limitation warning:** 60 days before the limitation date.
+
+As you tick steps on a matter's checklist, the reminders keep up: a ticked step's reminders are removed and the next step's reminder is added. When you record the funds collected in full, every upcoming reminder for that matter is removed. See [The checklist](/help/enforcement#the-checklist).
 
 Each reminder links back to the matter. You can turn reminders off in Settings. If you use a different calendar app, use **Download .ics** on the matter page.

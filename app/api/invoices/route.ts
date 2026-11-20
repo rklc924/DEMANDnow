@@ -1,4 +1,5 @@
 import { acct, can } from "@/lib/auth";
+import { assignMatter, chosenAssignee } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import type { Customer, Invoice } from "@/lib/accounting/types";
 import { go, withUser } from "@/lib/http";
@@ -15,10 +16,10 @@ const plus30 = (iso: string) => {
 // Adds an invoice entered by hand (not from the accounting sync).
 export const POST = (req: Request) =>
   withUser(req, async (user) => {
-    if (!can(user, "manageInvoices")) return go(req, "/?noPermission=1");
     const f = await req.formData();
     const err = (m: string) => go(req, `/invoices/new?error=${encodeURIComponent(m)}`);
     const db = await readDB(acct(user));
+    if (!can(user, "addMatters", db)) return go(req, "/?noPermission=1");
     const manual = (db.manual ??= { customers: [], invoices: [] });
 
     let customer = manual.customers.find((c) => c.id === str(f.get("customerId")));
@@ -58,6 +59,12 @@ export const POST = (req: Request) =>
     };
     logActivity(db, user, `Added invoice ${number} for ${customer.name}`, `/cases/${invoice.id}`);
     manual.invoices.push(invoice);
+    const assignee = chosenAssignee(user, f.has("assignee") ? str(f.get("assignee")) : null, can(user, "assignMatters", db));
+    try {
+      await assignMatter(db, acct(user), invoice.id, assignee, user, `invoice ${number} (${customer.name})`, req);
+    } catch (e) {
+      return err((e as Error).message);
+    }
     await writeDB(acct(user), db);
     return go(req, `/?added=${encodeURIComponent(number)}`);
   });

@@ -1,4 +1,5 @@
-import { acct } from "@/lib/auth";
+import { acct, canSeeMatter } from "@/lib/auth";
+import { lienLabel, notifyOwner } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { money } from "@/lib/aging";
 import { checkDocument } from "@/lib/doccheck";
@@ -17,6 +18,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const db = await readDB(acct(user));
     const lien = db.liens?.find((l) => l.id === params.id);
     const step = LIEN_STEPS.find((s) => s.id === stepId);
+    if (lien && !canSeeMatter(user, db, lien.id)) return go(req, "/?noAccess=1");
     if (!lien || !step?.upload || !(file instanceof File) || file.size === 0) return back();
 
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -35,5 +37,6 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     p.docs.push(doc);
     if (doc.status === "pass") p.done = [...new Set([...p.done, stepId])];
     await writeDB(acct(user), db);
+    await notifyOwner(db, lien.id, user, `Uploaded ${step.upload.label} (${doc.status === "pass" ? "check passed" : doc.status === "issues" ? "check found problems" : "not checked"})`, lienLabel(lien), req);
     return back(`?checked=${stepId}`);
   });

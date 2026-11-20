@@ -1,4 +1,6 @@
-import { requireUser, acct } from "@/lib/auth";
+import { requireUser, acct, can, canSeeMatter, isAdmin } from "@/lib/auth";
+import { assignableUsers } from "@/lib/matters";
+import { AssigneeField } from "../assign";
 import { money } from "@/lib/aging";
 import { LIEN_FILING_FEE, LIEN_ROLE_LABEL, LIEN_RUSH_FEE, LIEN_STANDARD_DAYS, lienDates } from "@/lib/liens";
 import { readDB } from "@/lib/store";
@@ -8,7 +10,7 @@ export const dynamic = "force-dynamic";
 const fmt = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
 const daysTo = (iso: string) => Math.ceil((new Date(iso + "T23:59:59").getTime() - Date.now()) / 86_400_000);
 
-export default async function Liens({ searchParams }: { searchParams: { error?: string } }) {
+export default async function Liens({ searchParams }: { searchParams: { error?: string; noPermission?: string } }) {
   const user = await requireUser();
   const db = await readDB(acct(user));
 
@@ -27,16 +29,20 @@ export default async function Liens({ searchParams }: { searchParams: { error?: 
             <li>Deadlines and reminders in your calendar, plus a lawyer hand-off for the court action</li>
             <li>Optional: we file it by hand for ${LIEN_FILING_FEE} per lien plus Land Title Office fees, with proof of filing within {LIEN_STANDARD_DAYS} business days (rush 1 to 3 business days for ${LIEN_RUSH_FEE} more if ordered before 12 PM)</li>
           </ul>
+          {isAdmin(user) ? (
           <form action="/api/addons/liens" method="post" className="row" style={{ marginTop: 14 }}>
             <button className="btn">Turn on Builders Liens</button>
             <span className="note">Deadline tools are included. You only pay when we file a lien for you.</span>
           </form>
+          ) : <p className="note" style={{ marginTop: 14 }}>Ask your organization's admin to turn on Builders Liens.</p>}
         </div>
       </div>
     );
   }
 
-  const liens = db.liens ?? [];
+  const liens = (db.liens ?? []).filter((l) => canSeeMatter(user, db, l.id));
+  const users = await assignableUsers(acct(user));
+  const nameOf = (id?: string) => { const u = users.find((x) => x.id === id); return u ? u.name || u.email : "Nobody"; };
   return (
     <>
       <h1>Builders liens</h1>
@@ -52,7 +58,7 @@ export default async function Liens({ searchParams }: { searchParams: { error?: 
                   const d = next ? daysTo(next.date) : null;
                   return (
                     <tr key={l.id} className={d !== null && d < 0 ? "late" : ""}>
-                      <td><a href={`/liens/${l.id}`}><b>{l.civicAddress || l.pid || "Property"}</b></a><div className="note">Owner {l.owner} · {money(l.amount)}</div></td>
+                      <td><a href={`/liens/${l.id}`}><b>{l.civicAddress || l.pid || "Property"}</b></a><div className="note">Owner {l.owner} · {money(l.amount)} · assigned to {nameOf(db.owners?.[l.id])}</div></td>
                       <td>{l.satisfied ? <span className="chip collected">Paid</span> : next ? <>{next.label}<div className="note">{fmt(next.date)}</div></> : null}</td>
                       <td style={{ textAlign: "right" }}>{!l.satisfied && d !== null && <span className={`pill ${d < 0 ? "bad" : d <= 7 ? "warn" : "blue"}`}>{d < 0 ? `${-d} days late` : `${d} days left`}</span>}</td>
                     </tr>
@@ -63,6 +69,8 @@ export default async function Liens({ searchParams }: { searchParams: { error?: 
         </div>
       )}
 
+      {searchParams.noPermission && <div className="banner bad">Your admin hasn't given you access to do that.</div>}
+      {!can(user, "addMatters", db) ? null : (
       <div className="card" id="new">
         <h2>Start a lien</h2>
         {searchParams.error && <div className="banner bad">{searchParams.error}</div>}
@@ -91,9 +99,11 @@ export default async function Liens({ searchParams }: { searchParams: { error?: 
             <div><label>Certificate of completion filed (if any)</label><input type="date" name="completionCertificateDate" /></div>
             <div><label>Head contract completed, abandoned or terminated (if known)</label><input type="date" name="headContractEndDate" /></div>
           </div>
+          <div style={{ maxWidth: 360 }}><AssigneeField me={user} users={users} canAssign={can(user, "assignMatters", db)} /></div>
           <div style={{ marginTop: 14 }}><button className="btn">Work out my deadlines</button></div>
         </form>
       </div>
+      )}
     </>
   );
 }

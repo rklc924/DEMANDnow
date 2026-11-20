@@ -1,11 +1,13 @@
-import { accountIdForUser } from "./auth";
+import { accountIdForUser, can, readUser, type User } from "./auth";
 import { bucketFor, daysOverdue, money } from "./aging";
 import { getJurisdiction, limitationDate, routeForum } from "./jurisdictions";
 import { createMatterForUser, parseMatter } from "./intake";
 import { loadRows, type Row } from "./ledger";
 import { baseUrl } from "./oauth";
-import { readDB, type DB } from "./store";
+import { assignMatter, visibleTo } from "./matters";
+import { readDB, writeDB, type DB } from "./store";
 import { usage } from "./usage";
+import { stageOf } from "./workflow";
 
 // Demand Now MCP server (Model Context Protocol, Streamable HTTP, stateless JSON responses).
 // Claude (custom connectors / Connectors Directory) and ChatGPT (apps and connectors) call it at /mcp
@@ -22,7 +24,10 @@ Demand Now provides legal information and documents, not legal advice. Don't tel
 
 type Json = Record<string, unknown>;
 interface Ctx {
+  /** The organization's account id. */
   userId: string;
+  /** The person who connected the assistant: what they can see and do applies here too. */
+  user: User | null;
   clientName: string;
   base: string;
 }
@@ -61,13 +66,15 @@ function forumFacts(jurisdiction: string, amount: number, dueDate: string) {
 
 function rowSummary(r: Row, db: DB, base: string) {
   const done = db.progress?.[r.invoice.id]?.done ?? [];
-  const next = r.forum.steps.find((s) => !done.includes(s.id));
+  const next = stageOf(r.forum.steps, done).current;
   return {
     matter_id: r.invoice.id,
     debtor: r.customer.name,
     debtor_type: r.customer.kind === "consumer" ? "individual" : "business",
     invoice_number: r.invoice.number,
     amount_owing: r.invoice.amountDue,
+    amount_collected: r.collected,
+    balance_owing: r.paid ? 0 : r.balance,
     due_date: r.invoice.dueDate,
     days_overdue: r.days,
     aging_bucket: r.bucket,
@@ -161,7 +168,15 @@ const TOOLS: Tool[] = [
     annotations: { title: "Start a demand in Demand Now", readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     async run(a, ctx) {
       const m = parseMatter(a);
+      if (ctx.user && !can(ctx.user, "addMatters", await readDB(ctx.userId))) throw new Error("This user's admin hasn't given them access to add matters in Demand Now.");
       const res = await createMatterForUser(ctx.userId, m, ctx.clientName);
+      if (ctx.user && res.kind !== "draft" && !res.duplicate && res.invoiceId) {
+        const owned = await readDB(ctx.userId);
+        if (!owned.owners?.[res.invoiceId]) {
+          await assignMatter(owned, ctx.userId, res.invoiceId, ctx.user.id, ctx.user, `invoice ${m.invoiceNumber || "the account"} (${m.debtorName})`);
+          await writeDB(ctx.userId, owned);
+        }
+      }
       const url = `${ctx.base}${res.path}`;
       const db = await readDB(ctx.userId);
       const f = forumFacts(db.company.jurisdiction || "BC", m.amount, m.dueDate);
@@ -212,7 +227,7 @@ const TOOLS: Tool[] = [
     },
     annotations: { title: "List overdue invoices and matters", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async run(a, ctx) {
-      const { db, rows } = await loadRows(ctx.userId);
+      const { db, rows } = await visibleRows(ctx);
       const all = rows.map((r) => rowSummary(r, db, ctx.base));
       const status = String(a.status ?? "open");
       const filtered = all.filter((r) =>
@@ -246,7 +261,7 @@ const TOOLS: Tool[] = [
     },
     annotations: { title: "Get a matter's status and next step", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async run(a, ctx) {
-      const { db, rows } = await loadRows(ctx.userId);
+      const { db, rows } = await visibleRows(ctx);
       const r = rows.find((x) => x.invoice.id === String(a.matter_id ?? ""));
       if (!r) throw new Error("No matter with that matter_id. Use list_matters to find it.");
       const s = rowSummary(r, db, ctx.base);
@@ -263,6 +278,12 @@ const TOOLS: Tool[] = [
     },
   },
 ];
+
+/** The matters the connected person may see: all of them for admins, otherwise what's assigned to them. */
+async function visibleRows(ctx: Ctx) {
+  const all = await loadRows(ctx.userId);
+  return ctx.user ? visibleTo(ctx.user, all.db, all.rows) : all;
+}
 
 // ---------- JSON-RPC ----------
 
@@ -312,7 +333,7 @@ async function handle(msg: RpcMsg, ctx: Ctx) {
 
 /** Handles one POST body (a message or a batch). Returns the response body, or null when only notifications were sent. */
 export async function handleRpc(body: unknown, ctx: { userId: string; clientName: string; req: Request }) {
-  const c: Ctx = { userId: await accountIdForUser(ctx.userId), clientName: ctx.clientName, base: baseUrl(ctx.req) };
+  const c: Ctx = { userId: await accountIdForUser(ctx.userId), user: await readUser(ctx.userId), clientName: ctx.clientName, base: baseUrl(ctx.req) };
   if (Array.isArray(body)) {
     const out = (await Promise.all(body.map((m) => handle(m as RpcMsg, c)))).filter((r) => r !== null);
     return out.length ? out : null;

@@ -1,4 +1,7 @@
-import { acct } from "@/lib/auth";
+import { acct, can, canSeeMatter } from "@/lib/auth";
+import { loadRow } from "@/lib/ledger";
+import { notifyOwner, rowLabel } from "@/lib/matters";
+import { logActivity } from "@/lib/store";
 import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
@@ -7,9 +10,15 @@ import { readDB, writeDB } from "@/lib/store";
 export const POST = (req: Request, { params }: { params: { id: string } }) =>
   withUser(req, async (user) => {
     const db = await readDB(acct(user));
+    if (!canSeeMatter(user, db, params.id)) return go(req, "/?noAccess=1");
+    if (!can(user, "requestReview", db)) return go(req, `/cases/${params.id}?noPermission=1`);
     db.reviewRequests ??= [];
+    const fresh = !db.reviewRequests.some((r) => r.invoiceId === params.id);
     if (!db.reviewRequests.some((r) => r.invoiceId === params.id))
       db.reviewRequests.push({ invoiceId: params.id, requestedAt: new Date().toISOString() });
+    if (fresh) logActivity(db, user, "Requested lawyer review", `/cases/${params.id}`);
     await writeDB(acct(user), db);
+    const { row } = await loadRow(acct(user), params.id);
+    if (fresh && row) await notifyOwner(db, params.id, user, "Lawyer review requested", rowLabel(row), req);
     return go(req, `/cases/${params.id}?review=1`);
   });

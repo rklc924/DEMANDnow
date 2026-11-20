@@ -41,9 +41,17 @@ When a letter is sent, Demand Now also:
 
 You can't send if your email isn't confirmed, you have no active plan, or you've used your monthly letters on Standard. The message on the page tells you which.
 
+# Who the matter is assigned to
+
+The **Assigned to** box at the top of the matter shows who is working on it. That person gets an email when someone else moves the matter forward. Admins, and regular users their admin allows, can pick someone else and click **Assign**. See [Your team and user roles](/help/team).
+
+On a team account, some buttons on this page only appear if your admin allows them: **Send demand letter**, **Mark paid**, **Delete invoice** and **Request lawyer review**. If **Request lawyer review** isn't available to you, ask your admin.
+
 # When they pay
 
-Click **Mark paid**. The workflow stops, no further reminders apply, and the matter shows as collected on your [Calendar](/help/calendar).
+If they paid the whole balance, click **Mark paid**. The matter closes, the workflow stops, upcoming reminders are removed, and the matter shows as collected on your [Calendar](/help/calendar).
+
+If they paid only part, or paid on a different day, use **Funds collected** at the bottom of the checklist instead. See [Funds collected](/help/enforcement#funds-collected).
 
 # Banners you may see
 

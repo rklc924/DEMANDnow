@@ -15,10 +15,16 @@ In BC you generally have {{LIMITATION_YEARS}} years from the due date to start a
 ### What if the debtor pays part of it?
 Record the payment in your accounting system so the balance owing is right. For an invoice you added by hand, delete it and add it again with the new balance if no letter has been sent yet. A part payment can also extend the limitation period. Request lawyer review if you're unsure how it affects your claim.
 
+### Who gets reminder emails on a team account?
+Each matter's reminders go to the person it's assigned to. Admins also get every matter by default, and always get matters nobody is assigned to. Each person can change their own reminders under **Reminders**. See [Email reminders](/help/email-reminders).
+
 # Troubleshooting
 
+### I'm not getting reminder emails.
+Open **Reminders** and check that **Email me reminders** is ticked, then click **Send me a test email**. If the test doesn't arrive, check your junk folder. Reminders also need a confirmed email address and an active plan, and your admin may have switched them off for the team or limited you to matters assigned to you.
+
 ### I can't send a letter.
-The message on the matter page tells you why. Usually it's one of these: your email address isn't confirmed (use **Resend the link** on the Receivables page), you don't have an active plan (choose one in [Billing](/help/billing)), or you've used this month's letters on Standard. On a team account, your admin may also have switched off sending for your login.
+The message on the matter page tells you why. Usually it's one of these: your email address isn't confirmed (use **Resend the link** on the Receivables page), you don't have an active plan (choose one in [Billing](/help/billing)), or you've used this month's letters on Standard. On a team account, your admin may also have switched off sending for regular users or for your login, or the matter may not be assigned to you.
 
 ### I keep being sent to "Add a card".
 Every account needs a card on file before it can use the app. Add one on that page and you can carry on.

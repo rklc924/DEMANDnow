@@ -5,7 +5,7 @@ export default function Signup({ searchParams }: { searchParams: { error?: strin
   return (
     <div className="card auth">
       <h1>Create your account</h1>
-      <p className="sub">{plan ? `You picked ${plan.name}. You'll choose monthly or annual next.` : "You'll choose a plan next."}</p>
+      <p className="sub">{plan ? `You picked ${plan.name}. You'll choose monthly or annual next.` : "You'll choose a plan next."} You'll be your organization's admin, and can add your team as regular users afterwards.</p>
       {searchParams.error && <div className="banner warn">{searchParams.error}</div>}
       <form action="/api/auth/signup" method="post">
         {plan && <input type="hidden" name="plan" value={plan.id} />}

@@ -21,7 +21,15 @@ The **demand queue** lists every invoice past your threshold (90 days unless you
 | Paid | You marked it paid. The workflow has stopped |
 | Limitation passed | The limitation period appears to have ended. Speak to a lawyer before doing anything else |
 
+Under each status, a short line says where the matter is up to, such as "Ready for a demand letter" or "Next: File the Notice of Claim". The **Assigned to** column shows who is working on it.
+
 Click **Review letter** or **Next steps** to open the matter. Consumer customers are marked with a grey **consumer** tag.
+
+# Whose matters you see
+
+Admins see every matter. Use **Show matters assigned to** above the tiles and click **Show** to narrow the page to one person, to yourself (**Me**), or to matters nobody has been assigned (**Nobody yet**).
+
+Regular users see only the matters assigned to them, unless their admin allows them to see every matter. The tiles and tables add up only the matters you can see. See [Your team and user roles](/help/team).
 
 # Coming up
 
@@ -35,12 +43,13 @@ If an invoice isn't coming from your accounting system, add it yourself:
 2. Choose an existing customer, or enter a new one: the name as it appears on your invoice, whether it's a business or an individual, their email and mailing address.
 3. Enter the invoice number, amount owing, what it was for, the invoice date and the due date. Leave the due date blank to use 30 days after the invoice date.
 4. If your terms charge interest on overdue amounts, enter the yearly rate. It's used in the letter and the claim.
-5. Click **Add invoice**.
+5. Under **Assigned to**, choose who will work on it. It starts on your own name. If your admin hasn't let you assign matters, it's assigned to you.
+6. Click **Add invoice**.
 
-The invoice is tracked with the rest, and the demand workflow starts automatically once it's overdue past your threshold. You can delete an invoice you added by hand from its matter page, as long as no letter has been sent.
+The invoice is tracked with the rest, and the demand workflow starts automatically once it's overdue past your threshold. You can delete an invoice you added by hand from its matter page, as long as no letter has been sent. On a team account, regular users need their admin's permission to add or delete invoices.
 
 # The nightly sync
 
-Each night Demand Now checks your invoices. If **auto-send** is on, it sends demand letters to **business** customers that have passed the threshold, up to your plan's monthly limit. Letters held back because you reached the limit are listed in the message after the sync. **Run nightly sync** runs the same check straight away.
+Each night Demand Now checks your invoices. If **auto-send** is on, it sends demand letters to **business** customers that have passed the threshold, up to your plan's monthly limit. Letters held back because you reached the limit are listed in the message after the sync. **Run nightly sync** runs the same check straight away. Only admins see this button.
 
 > **Important:** Consumer (individual) customers are never auto-sent. You always review those letters yourself before they go out.

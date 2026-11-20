@@ -1,4 +1,5 @@
-import { acct } from "@/lib/auth";
+import { acct, canSeeMatter } from "@/lib/auth";
+import { notifyOwner, rowLabel } from "@/lib/matters";
 import { randomBytes } from "crypto";
 import { checkDocument } from "@/lib/doccheck";
 import { go, withUser } from "@/lib/http";
@@ -17,6 +18,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const file = f.get("file");
     const { db, row } = await loadRow(acct(user), params.id);
     const step = row?.forum.steps.find((s) => s.id === stepId);
+    if (row && !canSeeMatter(user, db, params.id)) return go(req, "/?noAccess=1");
     if (!row || !step?.upload || !(file instanceof File) || file.size === 0) return back();
 
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -35,5 +37,6 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     p.docs.push(doc);
     if (doc.status === "pass") p.done = [...new Set([...p.done, stepId])];
     await writeDB(acct(user), db);
+    await notifyOwner(db, params.id, user, `Uploaded ${step.upload.label} (${doc.status === "pass" ? "check passed" : doc.status === "issues" ? "check found problems" : "not checked"})`, rowLabel(row), req);
     return back(`?checked=${stepId}`);
   });

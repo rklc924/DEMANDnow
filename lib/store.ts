@@ -52,6 +52,23 @@ export interface DocCheck {
 export interface CaseProgress {
   done: string[]; // step ids
   docs: DocCheck[];
+  /** Money received from the debtor after the matter opened, full or partial (lib/workflow.ts). */
+  payments?: Payment[];
+  /** Set when the funds were collected in full: the matter is closed and enforcement stops. */
+  closedAt?: string;
+  /** The route (forum id) the matter was on when the first step after the demand was ticked. It stays on that route
+   *  even if a part payment brings the balance under a threshold. */
+  forumId?: string;
+}
+
+export interface Payment {
+  id: string;
+  date: string; // YYYY-MM-DD the money was received
+  amount: number;
+  method?: string;
+  note?: string;
+  recordedAt: string;
+  recordedBy: string;
 }
 
 export type MailProvider = "microsoft" | "google";
@@ -76,6 +93,8 @@ export interface Reminder {
   title: string;
   detail: string;
   eventId?: string; // id in the connected calendar
+  /** The checklist step this reminder is about. Ticking that step (or a later one) removes it. */
+  stepId?: string;
 }
 
 export interface Subscription {
@@ -135,13 +154,31 @@ export interface DB {
   matterSource?: Record<string, string>;
   /** Who did what, newest last (capped). Admins see it on the Team page. */
   activity?: { at: string; userId: string; name: string; action: string; link?: string }[];
+  /** Who each matter is assigned to: matter id (invoice id or lien id) to user id. */
+  owners?: Record<string, string>;
+  /** What regular users can do in this organization, where the admin changed the built-in defaults (lib/auth.ts). */
+  memberDefaults?: import("./auth").PermissionMap;
+  /** Organization-wide email reminder rules, set by an admin (lib/notify.ts). */
+  reminderSettings?: ReminderSettings;
 }
+
+export interface ReminderSettings {
+  /** Off stops reminder emails for everyone in the organization. */
+  enabled: boolean;
+  /** assigned: regular users are only reminded about matters assigned to them. all: about every matter. */
+  memberScope: "assigned" | "all";
+}
+
+/** The user a matter is assigned to, if anyone. */
+export const matterOwner = (db: DB, matterId: string): string | undefined => db.owners?.[matterId];
 
 /** Records an action by a team member. Call before writeDB. */
 export function logActivity(db: DB, user: { id: string; name: string; email: string }, action: string, link?: string) {
   (db.activity ??= []).push({ at: new Date().toISOString(), userId: user.id, name: user.name || user.email, action, link });
   if (db.activity.length > 500) db.activity = db.activity.slice(-500);
 }
+
+export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { enabled: true, memberScope: "assigned" };
 
 export { DATA_DIR } from "./db";
 

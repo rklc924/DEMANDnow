@@ -2,7 +2,8 @@ import { Fragment } from "react";
 import { money } from "@/lib/aging";
 import type { EnforcementStep, Jurisdiction } from "@/lib/jurisdictions/types";
 import type { Row } from "@/lib/ledger";
-import type { CaseProgress, Company, DocCheck } from "@/lib/store";
+import type { CaseProgress, Company, DocCheck, Payment } from "@/lib/store";
+import { stageOf } from "@/lib/workflow";
 
 // The step-by-step enforcement guide and Notice of Claim data sheet, shared by subscriber cases and one-offs.
 
@@ -37,7 +38,7 @@ export function ClaimSheet({ row, company, letterSent }: { row: Row; company: Co
         <dt>Defendant</dt><dd>{customer.name}, {customer.address.join(", ")}</dd>
         <dt>Registry</dt><dd>Nearest to {customer.address.at(-1) ?? "the defendant"} (defendant's location), or where the transaction took place</dd>
         <dt>What happened</dt><dd>The claimant provided {invoice.description.toLowerCase()} to the defendant and billed it on invoice {invoice.number}, payable by {fmt(invoice.dueDate)}. The defendant has not paid. A written demand was {letterSent ? `sent on ${fmt(letterSent)}` : "sent before filing"}.</dd>
-        <dt>Amount claimed</dt><dd>{money(invoice.amountDue)} plus interest{invoice.interestRate ? ` at the contract rate of ${invoice.interestRate}%` : " under the Court Order Interest Act"}, and filing and service fees</dd>
+        <dt>Amount claimed</dt><dd>{money(row.collected > 0 ? row.balance : invoice.amountDue)}{row.collected > 0 ? ` (the invoice was ${money(invoice.amountDue)}, less ${money(row.collected)} paid)` : ""} plus interest{invoice.interestRate ? ` at the contract rate of ${invoice.interestRate}%` : " under the Court Order Interest Act"}, and filing and service fees</dd>
         <dt>Attachments</dt><dd>Invoice, contract or terms, demand letter, proof of delivery</dd>
       </dl>
     </div>
@@ -177,38 +178,74 @@ function BookingForm({ s, b }: { s: NonNullable<Row["forum"]["service"]>; b: Boo
 
 const NL = String.fromCharCode(10);
 
-/** The matter's steps as a tick-box checklist. Steps that need outside proof take an upload, which is checked. */
-export function CaseChecklist({ row, j, progress, autoDone }: { row: Row; j: Jurisdiction; progress?: CaseProgress; autoDone?: string[] }) {
-  return <Checklist title={`Checklist: ${row.forum.name}`} steps={row.forum.steps} api={`/api/cases/${row.invoice.id}`} progress={progress} autoDone={autoDone} disclaimer={j.disclaimer} />;
+/** The matter's steps as a tick-box checklist. Ticking a step moves the workflow on to the next one (lib/workflow.ts).
+ *  Steps that need outside proof take an upload, which is checked. The last box records funds collected. */
+export function CaseChecklist({ row, j, progress, autoDone, collect, ticked }: { row: Row; j: Jurisdiction; progress?: CaseProgress; autoDone?: string[]; collect?: CollectProps; ticked?: string }) {
+  return <Checklist title={`Checklist: ${row.forum.name}`} steps={row.forum.steps} api={`/api/cases/${row.invoice.id}`} progress={progress} autoDone={autoDone} disclaimer={j.disclaimer} collect={collect} ticked={ticked} />;
 }
 
-export function Checklist({ title, steps, api, progress, autoDone, disclaimer }: { title: string; steps: EnforcementStep[]; api: string; progress?: CaseProgress; autoDone?: string[]; disclaimer: string }) {
+export interface CollectProps {
+  action: string; // POST: record a payment
+  reopenAction: string; // POST, admin only
+  amountDue: number;
+  collected: number;
+  balance: number;
+  payments: Payment[];
+  closed: boolean;
+  closedAt?: string;
+  /** Regular users need the "Add, delete and mark invoices paid" permission. */
+  canRecord: boolean;
+  isAdmin: boolean;
+  message?: { kind: "good" | "bad"; text: string };
+}
+
+export function Checklist({ title, steps, api, progress, autoDone, disclaimer, collect, ticked }: { title: string; steps: EnforcementStep[]; api: string; progress?: CaseProgress; autoDone?: string[]; disclaimer: string; collect?: CollectProps; ticked?: string }) {
   const done = new Set([...(progress?.done ?? []), ...(autoDone ?? [])]);
-  const total = steps.length;
-  const count = steps.filter((s) => done.has(s.id)).length;
+  const auto = new Set(autoDone ?? []);
+  const closed = collect ? collect.closed : !!progress?.closedAt;
+  const { current, skipped, doneCount } = stageOf(steps, done);
+  const total = steps.length + (collect ? 1 : 0);
+  const count = doneCount + (collect && closed ? 1 : 0);
+  const justTicked = ticked ? steps.find((s) => s.id === ticked) : undefined;
   return (
     <div className="card" id="steps">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h2 style={{ margin: 0 }}>{title}</h2>
-        <span className="pill blue">{count} of {total} done</span>
+        <span className={`pill ${closed ? "good" : "blue"}`}>{closed ? "Closed: funds collected" : `${count} of ${total} done`}</span>
       </div>
-      <div className="meter" style={{ margin: "10px 0 14px" }}><div style={{ width: `${(count / total) * 100}%` }} /></div>
-      <ol className="checklist">
+      <div className="meter" style={{ margin: "10px 0 14px" }}><div style={{ width: `${(closed ? 1 : count / total) * 100}%` }} /></div>
+      {!closed && (
+        <p className="stage">
+          {justTicked && <><b>✓ {justTicked.title}.</b>{" "}</>}
+          {current ? <>Current step: <a href={`#step-${current.id}`}>{current.title}</a>{current.followUp ? <span className="note"> · reminder in {current.followUp.days} days</span> : null}</> : <>Every step is ticked.{collect ? " Record the funds collected below to close the matter." : ""}</>}
+        </p>
+      )}
+      {closed && <p className="stage good">Funds collected in full. Enforcement has stopped, and the remaining steps and reminders are switched off.</p>}
+      <ol className={`checklist ${closed ? "locked" : ""}`}>
         {steps.map((s) => {
           const isDone = done.has(s.id);
+          const isAuto = auto.has(s.id) && !progress?.done.includes(s.id);
+          const isCurrent = !closed && current?.id === s.id;
           const docs = (progress?.docs ?? []).filter((d) => d.stepId === s.id);
           const latest = docs.at(-1);
           return (
-            <li key={s.id} className={isDone ? "done" : ""}>
-              <form action={`${api}/step`} method="post" className="tick">
-                <input type="hidden" name="step" value={s.id} />
-                <input type="hidden" name="done" value={isDone ? "0" : "1"} />
-                <button className={`box ${isDone ? "on" : ""}`} aria-label={isDone ? "Mark not done" : "Mark done"} title={isDone ? "Mark not done" : "Mark done"}>{isDone ? "✓" : ""}</button>
-              </form>
+            <li key={s.id} id={`step-${s.id}`} className={[isDone ? "done" : "", isCurrent ? "current" : ""].join(" ")}>
+              {closed || isAuto ? (
+                <span className={`box static ${isDone ? "on" : ""}`} title={isAuto ? "Done automatically" : "Matter closed"}>{isDone ? "✓" : ""}</span>
+              ) : (
+                <form action={`${api}/step`} method="post" className="tick">
+                  <input type="hidden" name="step" value={s.id} />
+                  <input type="hidden" name="done" value={isDone ? "0" : "1"} />
+                  <button className={`box ${isDone ? "on" : ""}`} aria-label={isDone ? `Mark "${s.title}" not done` : `Mark "${s.title}" done`} title={isDone ? "Mark not done" : "Mark done"}>{isDone ? "✓" : ""}</button>
+                </form>
+              )}
               <div className="body">
-                <div className="t">{s.title} {s.verify && <span className="pill grey" title="Confirm against current rules before relying on it">confirm</span>}</div>
-                <div className="d">{s.detail}{s.document ? <> · <b>Prepared for you:</b> {s.document}</> : null}</div>
-                {s.upload && (
+                <div className="t">
+                  {s.title} {isCurrent && <span className="pill blue">Current step</span>} {skipped.has(s.id) && !closed && <span className="pill grey" title="A later step is ticked. Tick this one too if you did it.">Skipped</span>}{" "}
+                  {s.verify && <span className="pill grey" title="Confirm against current rules before relying on it">confirm</span>}
+                </div>
+                <div className="d">{s.detail}{s.document ? <> · <b>Prepared for you:</b> {s.document}</> : null}{isAuto ? " · Ticked automatically." : ""}</div>
+                {s.upload && !closed && (
                   <div className="upload">
                     {latest && <DocResult doc={latest} />}
                     {(!latest || latest.status !== "pass") && (
@@ -224,13 +261,78 @@ export function Checklist({ title, steps, api, progress, autoDone, disclaimer }:
                     )}
                   </div>
                 )}
+                {s.upload && closed && latest && <DocResult doc={latest} />}
               </div>
             </li>
           );
         })}
+        {collect && <FundsCollected c={collect} />}
       </ol>
       <p className="note">{disclaimer} Automatic document checks help catch common mistakes; they are not a guarantee the court will accept a document.</p>
     </div>
+  );
+}
+
+const cents = (n: number) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** The last box on every debt checklist: money received, full or partial. Full payment closes the matter. */
+function FundsCollected({ c }: { c: CollectProps }) {
+  const closed = c.closed;
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    <li id="collected" className={`collect ${closed ? "done" : ""}`}>
+      <span className={`box static ${closed ? "on" : ""}`} aria-hidden>{closed ? "✓" : ""}</span>
+      <div className="body">
+        <div className="t">Funds collected {c.collected > 0 && !closed && <span className="pill warn">Part paid</span>}</div>
+        <div className="d">
+          {closed
+            ? <>Closed{c.closedAt ? ` ${fmt(c.closedAt)}` : ""}. {cents(c.collected)} collected of {cents(c.amountDue)}.</>
+            : c.collected > 0
+              ? <>{cents(c.collected)} collected so far. <b>{cents(c.balance)} still owing</b>; the checklist carries on for the balance.</>
+              : <>Record any money you receive, at any step. Paid in full closes the matter and stops every further step and reminder. A part payment lowers the balance and the workflow carries on.</>}
+        </div>
+        {c.message && <div className={`banner ${c.message.kind}`} style={{ marginTop: 8 }}>{c.message.text}</div>}
+        {c.payments.length > 0 && (
+          <table className="payments">
+            <tbody>
+              {c.payments.map((p) => (
+                <tr key={p.id}>
+                  <td>{fmt(p.date)}</td>
+                  <td className="amt">{cents(p.amount)}</td>
+                  <td className="note">{[p.method, p.note, `recorded by ${p.recordedBy}`].filter(Boolean).join(" · ")}</td>
+                  <td>{c.isAdmin && (
+                    <form action={c.reopenAction} method="post"><input type="hidden" name="payment" value={p.id} /><button className="link" title="Remove this payment (recorded by mistake)">Remove</button></form>
+                  )}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!closed && c.collected > 0 && <p className="note">A part payment can restart the two-year limitation period (Limitation Act, s. 24). <span className="pill grey" title="Confirm against current rules before relying on it">confirm</span></p>}
+        {!closed && (c.canRecord ? (
+          <details className="collect-form" open={!!c.message && c.message.kind === "bad"}>
+            <summary className="btn small">Record funds collected</summary>
+            <form action={c.action} method="post" style={{ marginTop: 10 }}>
+              <div className="grid2" style={{ gap: 10 }}>
+                <div><label>Amount received</label><input type="text" name="amount" inputMode="decimal" placeholder={cents(c.balance)} /></div>
+                <div><label>Date received</label><input type="date" name="date" defaultValue={today} max={today} required /></div>
+                <div><label>How it was paid (optional)</label><input type="text" name="method" placeholder="e.g. e-transfer, cheque, garnishment" /></div>
+                <div><label>Note (optional)</label><input type="text" name="note" placeholder="e.g. settlement agreed at mediation" /></div>
+              </div>
+              <label className="check" style={{ marginTop: 8 }}><input type="checkbox" name="full" /> <span>Paid in full: close the matter (also for a settlement for less than the full amount)</span></label>
+              <button className="btn" style={{ marginTop: 10 }}>Save payment</button>
+              <p className="note">Leave the amount blank with "Paid in full" ticked to record the whole balance of {cents(c.balance)}.</p>
+            </form>
+          </details>
+        ) : <p className="note">Your admin hasn't given you access to record payments.</p>)}
+        {closed && c.isAdmin && (
+          <form action={c.reopenAction} method="post" style={{ marginTop: 8 }}>
+            <input type="hidden" name="reopen" value="1" />
+            <button className="btn ghost small">Reopen matter</button> <span className="note">For example, if a payment bounced.</span>
+          </form>
+        )}
+      </div>
+    </li>
   );
 }
 

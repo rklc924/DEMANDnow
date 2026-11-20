@@ -26,18 +26,59 @@ export interface User {
   role?: Role;
   /** Set by an admin to block this login. */
   disabled?: boolean;
-  /** Restrictions an admin has placed on a regular user. Missing means allowed. */
-  permissions?: Partial<Record<Permission, boolean>>;
+  /** This user's own settings where they differ from the organization's defaults for regular users. */
+  permissions?: PermissionMap;
+  /** Email reminder preferences (lib/notify.ts). Missing means the defaults: on, 3 days and 1 day before, every stage. */
+  notifications?: NotificationPrefs;
 }
 
-export type Permission = "sendLetters" | "orderServices" | "manageInvoices";
-export const PERMISSION_LABEL: Record<Permission, string> = {
-  sendLetters: "Send demand letters",
-  orderServices: "Order paid services (process servers, lien filings, searches)",
-  manageInvoices: "Add, delete and mark invoices paid",
-};
-/** Admins can do everything; regular users can do what the admin hasn't switched off. */
-export const can = (u: Pick<User, "role" | "permissions">, p: Permission) => isAdmin(u) || u.permissions?.[p] !== false;
+export interface NotificationPrefs {
+  email: boolean;
+  /** Days before a deadline to send a reminder. 0 = on the day. */
+  leadDays: number[];
+  /** Stage ids switched off (lib/deadlines). Stored as the ones turned off, so new stages start on. */
+  mutedStages: string[];
+  /** all: every matter in the organization. mine: only matters assigned to me. Missing: all for admins, mine for regular users. */
+  scope?: "all" | "mine";
+}
+
+// What regular users can do. Admins can always do everything.
+// MEMBER_DEFAULTS is the built-in starting point. Each organization's admin can change it for all
+// regular users on the Team page (DB.memberDefaults), and override it for one user (User.permissions).
+// To add a permission: add it here with a label and a default, then check it with can() in the route.
+export type Permission =
+  | "seeAllMatters"
+  | "addMatters"
+  | "sendLetters"
+  | "markPaid"
+  | "deleteInvoices"
+  | "assignMatters"
+  | "orderServices"
+  | "requestReview";
+export const PERMISSIONS: { key: Permission; label: string; default: boolean }[] = [
+  { key: "seeAllMatters", label: "See every matter, not just the ones assigned to them", default: false },
+  { key: "addMatters", label: "Add invoices and liens", default: true },
+  { key: "sendLetters", label: "Send demand letters", default: true },
+  { key: "markPaid", label: "Mark invoices paid and record funds collected", default: true },
+  { key: "deleteInvoices", label: "Delete invoices", default: false },
+  { key: "assignMatters", label: "Assign and reassign matters", default: false },
+  { key: "orderServices", label: "Order paid services (process servers, lien filings, searches)", default: false },
+  { key: "requestReview", label: "Request lawyer review", default: false },
+];
+export const PERMISSION_LABEL = Object.fromEntries(PERMISSIONS.map((p) => [p.key, p.label])) as Record<Permission, string>;
+export const MEMBER_DEFAULTS = Object.fromEntries(PERMISSIONS.map((p) => [p.key, p.default])) as Record<Permission, boolean>;
+export type PermissionMap = Partial<Record<Permission, boolean>>;
+
+/** What a regular user gets unless their own settings say otherwise: the organization's defaults, then the built-in ones. */
+export const orgDefault = (org: { memberDefaults?: PermissionMap }, p: Permission) => org.memberDefaults?.[p] ?? MEMBER_DEFAULTS[p];
+
+/** Admins can do everything; regular users get their own setting, else the organization's default. */
+export const can = (u: Pick<User, "role" | "permissions">, p: Permission, org: { memberDefaults?: PermissionMap }) =>
+  isAdmin(u) || (u.permissions?.[p] ?? orgDefault(org, p));
+
+/** Whether this login can open a matter: admins and "see every matter" users see all, others see what's assigned to them. */
+export const canSeeMatter = (u: Pick<User, "id" | "role" | "permissions">, org: { memberDefaults?: PermissionMap; owners?: Record<string, string> }, matterId: string) =>
+  can(u, "seeAllMatters", org) || org.owners?.[matterId] === u.id;
 
 /** Everyone who can log in to an organization. */
 export async function orgUsers(accountId: string): Promise<User[]> {

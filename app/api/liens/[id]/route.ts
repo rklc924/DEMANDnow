@@ -1,4 +1,5 @@
-import { acct } from "@/lib/auth";
+import { acct, canSeeMatter } from "@/lib/auth";
+import { lienLabel, notifyOwner } from "@/lib/matters";
 import { go, withUser } from "@/lib/http";
 import { readDB, writeDB } from "@/lib/store";
 
@@ -11,6 +12,7 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
     const db = await readDB(acct(user));
     const l = db.liens?.find((x) => x.id === params.id);
     if (!l) return go(req, "/liens");
+    if (!canSeeMatter(user, db, l.id)) return go(req, "/?noAccess=1");
     for (const k of ["lastWorkDate", "completionCertificateDate", "headContractEndDate", "filedDate", "noticeToCommenceServedDate"] as const) {
       if (f.has(k)) {
         const v = date(f.get(k));
@@ -24,5 +26,6 @@ export const POST = (req: Request, { params }: { params: { id: string } }) =>
       p.done = [...new Set([...p.done, "dates", "file"])];
     }
     await writeDB(acct(user), db);
+    await notifyOwner(db, l.id, user, f.has("satisfied") ? (l.satisfied ? "Marked paid" : "Marked not paid") : "Updated the lien dates", lienLabel(l), req);
     return go(req, `/liens/${l.id}?saved=1`);
   });

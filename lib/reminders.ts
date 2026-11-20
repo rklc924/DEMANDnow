@@ -14,16 +14,20 @@ export function followUps(row: Row, letter: LetterRecord, appUrl: string): Remin
   const { invoice, customer, forum } = row;
   const link = `${appUrl}/cases/${invoice.id}`;
   const who = `${customer.name}, invoice ${invoice.number}`;
+  // Each reminder is tagged with the checklist step it chases, so ticking that step removes it (lib/workflow.ts).
+  const claimStep = forum.steps.find((s) => s.startsClaim)?.id ?? forum.steps[1]?.id;
   const list: Omit<Reminder, "id">[] = [
     {
       invoiceId: invoice.id,
       date: letter.deadline,
+      stepId: forum.steps[0]?.id,
       title: `Payment deadline: ${who}`,
-      detail: `The demand letter's deadline to pay is today. If you've been paid, mark it paid in Demand Now. ${link}`,
+      detail: `The demand letter's deadline to pay is today. If you've been paid, record the funds collected in Demand Now. ${link}`,
     },
     {
       invoiceId: invoice.id,
       date: addDays(letter.deadline, 1),
+      stepId: claimStep,
       title: `If unpaid, next step: ${forum.selfServe ? `start a ${forum.name} claim` : "send to a lawyer"} (${who})`,
       detail: forum.selfServe
         ? `The deadline has passed. Open the step-by-step guide to prepare and file your claim. ${link}`
@@ -34,6 +38,7 @@ export function followUps(row: Row, letter: LetterRecord, appUrl: string): Remin
     list.push({
       invoiceId: invoice.id,
       date: addDays(letter.deadline, 14),
+      stepId: "serve",
       title: `Check: Notice of Claim filed and served? (${who})`,
       detail: `If you've served it, enter the service date in Demand Now to get the Reply and default-order dates. ${link}`,
     });
@@ -43,6 +48,7 @@ export function followUps(row: Row, letter: LetterRecord, appUrl: string): Remin
     list.push({
       invoiceId: invoice.id,
       date: warn,
+      stepId: claimStep,
       title: `Limitation warning, 60 days left: ${who}`,
       detail: `The two-year limitation period ends ${row.limitation}. A claim must be filed before then or the debt may be unenforceable. ${link}`,
     });
